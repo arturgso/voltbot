@@ -7,7 +7,12 @@ authors = [
     { name = "Artur Oliveira", email = "arturgs.dev@gmail.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "imap-tools>=1.15.0",
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "pyyaml>=6.0.3",
+]
 
 [project.scripts]
 enel-auto = "enel_auto:main"
