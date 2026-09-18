@@ -1,94 +1,59 @@
-import re
-from dataclasses import dataclass
+from __future__ import annotations
+
 from datetime import date, timedelta
 
-from imap_tools import AND, MailBox, MailMessage
-
-from enel_auto.config import get_settings
-
-SUBJECT_FILTER = "Enel - Conta por email"
-
-INSTALLATION_REGEX = re.compile(
-    r"INSTALA[ÇC][ÃA]O/UC[:\s]*(\d+)",
-    re.IGNORECASE,
-)
+from enel_auto.contacts import load_contacts_for_installation
+from enel_auto.domain import EnelBill, PendingDelivery
+from enel_auto.imap_client import find_day_emails
+from enel_auto.parsers import parse_mail_message
+from enel_auto.state import already_processed, mark_processed
+from enel_auto.storage import save_pdf
 
 
-@dataclass
-class EnelBill:
-    installation: str      # mantém zero à esquerda: "0200420281"
-    subject: str
-    date: date
-    pdf_name: str
-    pdf_bytes: bytes
+def process_day(day: date | None = None) -> list[PendingDelivery]:
+    """Orchestrate the IMAP fetch, parser, contacts and storage steps.
 
+    This function returns domain-ready objects for a future message-delivery
+    layer. It intentionally avoids any WhatsApp or Evolution API integration.
+    """
+    resolved_day = day or date.today()
+    emails = find_day_emails(resolved_day)
+    deliveries: list[PendingDelivery] = []
 
-def _extract_installation(msg: MailMessage) -> str | None:
-    body = msg.text or msg.html or ""
-    match = INSTALLATION_REGEX.search(body)
-    return match.group(1) if match else None
-
-
-def _extract_pdf(msg: MailMessage) -> tuple[str, bytes] | None:
-    for att in msg.attachments:
-        name = (att.filename or "").lower()
-        if name.endswith(".pdf") or att.content_type == "application/pdf":
-            return att.filename, att.payload
-    return None
-
-
-def _find_day_emails(day: date) -> list[MailMessage]:
-    settings = get_settings()
-    with MailBox(settings.imap_host).login(
-        settings.imap_user, settings.imap_pass, "INBOX"
-    ) as mailbox:
-        return list(
-            mailbox.fetch(
-                AND(subject=SUBJECT_FILTER, date=day),
-                mark_seen=False,
-                reverse=True,
-            )
-        )
-
-
-def find_bills_for_day(day: date | None = None) -> list[EnelBill]:
-    day = day or date.today()
-    bills: list[EnelBill] = []
-
-    for msg in _find_day_emails(day):
-        installation = _extract_installation(msg)
-        if not installation:
-            print(f"[SKIP] Sem instalação: {msg.subject} ({msg.date})")
+    for msg in emails:
+        bill = parse_mail_message(msg)
+        if bill is None:
             continue
 
-        pdf = _extract_pdf(msg)
-        if not pdf:
-            print(f"[SKIP] Sem PDF: instalação {installation} ({msg.date})")
+        if already_processed(bill.installation, bill.pdf_name):
             continue
 
-        pdf_name, pdf_bytes = pdf
-        bills.append(
-            EnelBill(
-                installation=installation,
-                subject=msg.subject,
-                date=msg.date.date(),
-                pdf_name=pdf_name,
-                pdf_bytes=pdf_bytes,
-            )
+        pdf_path = save_pdf(bill)
+        contacts = load_contacts_for_installation(bill.installation)
+        bill_with_path = EnelBill(
+            installation=bill.installation,
+            subject=bill.subject,
+            date=bill.date,
+            pdf_name=bill.pdf_name,
+            pdf_bytes=bill.pdf_bytes,
+            pdf_path=pdf_path,
         )
+        deliveries.append(PendingDelivery(bill=bill_with_path, contacts=contacts))
+        mark_processed(bill.installation, bill.pdf_name)
 
-    return bills
+    return deliveries
 
 
-def main():
+def main() -> None:
     test_day = date.today() - timedelta(days=1)
-    bills = find_bills_for_day(test_day)
-    print(f"Encontradas {len(bills)} contas")
+    deliveries = process_day(test_day)
+    print(f"Encontradas {len(deliveries)} contas")
 
-    for b in bills:
+    for delivery in deliveries:
+        bill = delivery.bill
         print(
-            f"- Instalação {b.installation} | {b.date} | "
-            f"{b.pdf_name} ({len(b.pdf_bytes):,} bytes)"
+            f"- Instalação {bill.installation} | {bill.date} | "
+            f"{bill.pdf_name} ({len(bill.pdf_bytes):,} bytes)"
         )
 
 

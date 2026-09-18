@@ -12,12 +12,16 @@ class Settings(BaseSettings):
     imap_host: str = "imap.gmail.com"
     imap_user: str
     imap_pass: str
+    contacts_path: str = "config.yaml"
+    downloads_dir: str = "downloads"
+    state_path: str = "state.json"
 
-    @field_validator("imap_user", "imap_pass")
+    @field_validator("imap_user", "imap_pass", "contacts_path", "downloads_dir", "state_path")
     @classmethod
     def _strip(cls, v: str) -> str:
         return v.strip()
 
-@lru_cache()
+
+@lru_cache
 def get_settings() -> Settings:
-    return Settings() # type: ignore
+    return Settings()
