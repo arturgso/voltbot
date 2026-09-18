@@ -16,7 +16,8 @@ dependencies = [
 ]
 
 [project.scripts]
-enel-auto = "enel_auto:main"
+enel-auto = "enel_auto.main:main"
+enel-auto-send-test = "enel_auto.manual_send:main"
 
 [build-system]
 requires = ["uv_build>=0.12.13,<0.13.0"]

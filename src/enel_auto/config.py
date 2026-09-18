@@ -15,8 +15,20 @@ class Settings(BaseSettings):
     contacts_path: str = "config.yaml"
     downloads_dir: str = "downloads"
     state_path: str = "state.json"
+    evolution_api_url: str = "http://127.0.0.1:8080"
+    evolution_api_key: str = ""
+    evolution_instance: str = "Vega"
 
-    @field_validator("imap_user", "imap_pass", "contacts_path", "downloads_dir", "state_path")
+    @field_validator(
+        "imap_user",
+        "imap_pass",
+        "contacts_path",
+        "downloads_dir",
+        "state_path",
+        "evolution_api_url",
+        "evolution_api_key",
+        "evolution_instance",
+    )
     @classmethod
     def _strip(cls, v: str) -> str:
         return v.strip()
