@@ -15,3 +15,4 @@ wheels/
 downloads/
 state.json
 data/
+frontend/node_modules/

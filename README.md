@@ -24,6 +24,17 @@ A interface permite: acompanhar status e logs, executar on-demand (dia, data
 ou mês inteiro, com dry-run), cadastrar contas de e-mail de origem e gerenciar
 instalações e contatos. Sem autenticação — uso local (bind em `WEB_HOST`).
 
+## Frontend (desenvolvimento)
+
+O frontend é Vite + React + Mantine em `frontend/`; o build vai para
+`src/voltbot/static/`, servido pelo próprio backend.
+
+```bash
+cd frontend
+npm install
+npm run dev    # http://127.0.0.1:5173 (proxy /api -> :8000)
+npm run build  # gera o bundle servido em produção
+```
 ## Evolution API (Docker)
 
 ```bash

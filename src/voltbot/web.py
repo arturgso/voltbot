@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -313,12 +312,10 @@ def create_app(db_path: str | None = None) -> FastAPI:
         finally:
             database.close()
 
-    if STATIC_DIR.exists():
-        app.mount("/assets", StaticFiles(directory=STATIC_DIR), name="assets")
-
-        @app.get("/", include_in_schema=False)
-        def index() -> FileResponse:
-            return FileResponse(STATIC_DIR / "index.html")
+    if (STATIC_DIR / "index.html").exists():
+        # SPA (build do frontend Vite+Mantine); rotas /api têm precedência
+        # por terem sido registradas antes deste mount.
+        app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
     return app
 
