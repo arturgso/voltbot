@@ -116,6 +116,11 @@ def create_app(db_path: str | None = None) -> FastAPI:
     finally:
         db.close()
 
+    @app.get("/health")
+    @app.get("/api/health")
+    def health() -> dict:
+        return {"status": "ok"}
+
     @app.get("/api/status")
     def status() -> dict:
         settings = get_settings()

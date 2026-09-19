@@ -15,6 +15,13 @@ def client(tmp_path, monkeypatch):
         yield test_client
 
 
+def test_health_returns_ok(client):
+    for path in ("/health", "/api/health"):
+        res = client.get(path)
+        assert res.status_code == 200
+        assert res.json() == {"status": "ok"}
+
+
 def test_status_shape(client):
     data = client.get("/api/status").json()
     assert set(data) >= {
