@@ -44,6 +44,7 @@ def collect_deliveries(messages: list[MailMessage]) -> list[PendingDelivery]:
             pdf_name=bill.pdf_name,
             pdf_bytes=bill.pdf_bytes,
             pdf_path=pdf_path,
+            barcode=bill.barcode,
         )
         deliveries.append(PendingDelivery(bill=bill_with_path, contacts=contacts))
 
@@ -171,6 +172,7 @@ def build_preview(
                         "installation_label": label,
                         "bill_date": delivery.bill.date.isoformat(),
                         "pdf_name": delivery.bill.pdf_name,
+                        "barcode": delivery.bill.barcode,
                     }
                     for delivery, label in group.items
                 ],
@@ -200,9 +202,10 @@ def run_cycle(
 
     for delivery in deliveries:
         bill = delivery.bill
+        barcode_info = f" | barras: {bill.barcode}" if bill.barcode else " | barras: ausente"
         print(
             f"- Instalação {bill.installation} | {bill.date} | "
-            f"{bill.pdf_name} ({len(bill.pdf_bytes):,} bytes)"
+            f"{bill.pdf_name} ({len(bill.pdf_bytes):,} bytes){barcode_info}"
         )
 
     if dry_run:

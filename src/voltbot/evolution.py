@@ -126,6 +126,14 @@ def format_installation_line(
     return line
 
 
+def format_barcode_block(barcode: str | None) -> str:
+    """Bloco copia-e-cola do codigo de barras (somente digitos)."""
+    digits = "".join(ch for ch in str(barcode or "") if ch.isdigit())
+    if not digits:
+        return ""
+    return f"Código de barras (copia e cola):\n{digits}"
+
+
 def build_intro_message(contact_name: str | None = None) -> str:
     greeting = f"Olá, {contact_name}! Aqui é o VoltBot ⚡" if contact_name else "Olá! Aqui é o VoltBot ⚡"
     return (
@@ -150,11 +158,15 @@ def build_delivery_message(
             if contact.installation == bill.installation and contact.installation_label:
                 installation_label = contact.installation_label
                 break
-    return (
+    text = (
         f"{greeting}\n"
         "Acabei de receber a sua conta de luz da Enel por e-mail e já estou te enviando 👇\n\n"
         f"{format_installation_line(bill.installation, installation_label, bill.date)}"
     )
+    barcode_block = format_barcode_block(bill.barcode)
+    if barcode_block:
+        text += f"\n\n{barcode_block}"
+    return text
 
 
 def build_combined_message(
@@ -166,11 +178,16 @@ def build_combined_message(
     ``items`` holds (delivery, installation_label) pairs.
     """
     greeting = f"Olá, {contact_name}! Aqui é o VoltBot ⚡" if contact_name else "Olá! Aqui é o VoltBot ⚡"
-    lines = [
-        format_installation_line(delivery.bill.installation, label, delivery.bill.date)
-        for delivery, label in items
-    ]
-    listing = "\n".join(f"- {line}" for line in lines)
+    parts: list[str] = []
+    for delivery, label in items:
+        parts.append(
+            f"- {format_installation_line(delivery.bill.installation, label, delivery.bill.date)}"
+        )
+        barcode_block = format_barcode_block(delivery.bill.barcode)
+        if barcode_block:
+            indented = barcode_block.replace("\n", "\n  ")
+            parts.append(f"  {indented}")
+    listing = "\n".join(parts)
     return (
         f"{greeting}\n"
         f"Acabei de receber {len(items)} contas de luz da Enel no e-mail e já estou te enviando 👇\n\n"

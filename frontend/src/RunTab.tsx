@@ -24,7 +24,7 @@ import {
   type RunSummary,
   type Status,
 } from './api';
-import ConsolePanel from './ConsolePanel';
+import ConsolePanel, { PreviewPanel } from './ConsolePanel';
 
 function currentYearMonth(): string {
   const now = new Date();
@@ -319,6 +319,7 @@ export default function RunTab({
 
         <Grid.Col span={{ base: 12, md: 7 }}>
           <ConsolePanel run={detail} />
+          <PreviewPanel run={detail} />
         </Grid.Col>
       </Grid>
     </Box>
