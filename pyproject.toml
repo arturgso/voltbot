@@ -11,13 +11,16 @@ dependencies = [
     "imap-tools>=1.15.0",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
-    "pyyaml>=6.0.3",
     "pytest>=8.0.0",
+    "fastapi>=0.141.1",
+    "uvicorn>=0.53.0",
+    "httpx>=0.28.1",
 ]
 
 [project.scripts]
 enel-auto = "enel_auto.main:main"
 enel-auto-send-test = "enel_auto.manual_send:main"
+enel-auto-web = "enel_auto.web:serve"
 
 [build-system]
 requires = ["uv_build>=0.12.13,<0.13.0"]

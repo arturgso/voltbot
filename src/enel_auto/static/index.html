@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enel Auto</title>
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header>
+  <h1>Enel Auto</h1>
+  <div id="badges" class="badges"></div>
+  <nav class="tabs">
+    <button data-tab="run" class="active">Executar</button>
+    <button data-tab="contacts">Instalações &amp; Contatos</button>
+    <button data-tab="accounts">Contas de e-mail</button>
+  </nav>
+</header>
+
+<main>
+  <section id="tab-run" class="tab active">
+    <div class="cards" id="status-cards"></div>
+
+    <div class="panel">
+      <h2>Executar agora</h2>
+      <form id="run-form" class="grid">
+        <label>Modo
+          <select id="run-mode" name="mode">
+            <option value="today">Hoje</option>
+            <option value="date">Data específica</option>
+            <option value="month">Mês inteiro</option>
+          </select>
+        </label>
+        <label id="run-date-wrap" class="hidden">Data
+          <input type="date" id="run-date" name="date">
+        </label>
+        <label id="run-month-wrap" class="hidden">Mês
+          <input type="month" id="run-month" name="month">
+        </label>
+        <label class="check"><input type="checkbox" id="run-dry" name="dry_run"> dry-run (só prever, sem enviar)</label>
+        <button type="submit">▶ Executar</button>
+      </form>
+      <p class="hint">O serviço também roda sozinho a cada 1h (POLL_INTERVAL_SECONDS).</p>
+    </div>
+
+    <div class="cols">
+      <div class="panel">
+        <h2>Execuções recentes</h2>
+        <ul id="runs-list" class="runs"></ul>
+      </div>
+      <div class="panel">
+        <h2>Logs <span id="run-detail-id" class="muted"></span></h2>
+        <pre id="run-logs" class="logs">Selecione uma execução.</pre>
+        <div id="run-summary" class="summary"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-contacts" class="tab">
+    <div class="cols">
+      <div class="panel">
+        <h2>Instalações</h2>
+        <form id="inst-form" class="grid">
+          <label>Código (UC) <input name="code" required placeholder="0200420281"></label>
+          <label>Rótulo <input name="label" placeholder="Casa"></label>
+          <button type="submit">Adicionar</button>
+        </form>
+        <ul id="inst-list" class="list"></ul>
+      </div>
+      <div class="panel">
+        <h2>Contatos</h2>
+        <form id="contact-form" class="grid">
+          <label>Instalação <select id="contact-inst" name="installation" required></select></label>
+          <label>WhatsApp <input name="phone" required placeholder="551199999999"></label>
+          <label>Nome <input name="name" placeholder="Bia"></label>
+          <button type="submit">Adicionar</button>
+        </form>
+        <ul id="contact-list" class="list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-accounts" class="tab">
+    <div class="panel">
+      <h2>Contas de e-mail (origem das faturas)</h2>
+      <form id="account-form" class="grid">
+        <label>Rótulo <input name="label" required placeholder="Principal"></label>
+        <label>IMAP host <input name="host" value="imap.gmail.com"></label>
+        <label>Usuário <input name="username" required placeholder="email@gmail.com"></label>
+        <label>Senha de app <input name="password" type="password" required></label>
+        <button type="submit">Adicionar</button>
+      </form>
+      <ul id="account-list" class="list"></ul>
+    </div>
+  </section>
+</main>
+
+<script src="/assets/app.js"></script>
+</body>
+</html>

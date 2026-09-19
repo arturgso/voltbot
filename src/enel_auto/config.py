@@ -13,24 +13,27 @@ class Settings(BaseSettings):
     imap_host: str = "imap.gmail.com"
     imap_user: str
     imap_pass: str
-    contacts_path: str = "config.yaml"
     downloads_dir: str = "downloads"
     state_path: str = "state.json"
     evolution_api_url: str = "http://127.0.0.1:8080"
     evolution_api_key: str = ""
     evolution_instance: str = "Vega"
     poll_interval_seconds: int = 3600
+    db_path: str = "data/enel_auto.db"
+    web_host: str = "127.0.0.1"
+    web_port: int = 8000
 
     @field_validator(
         "imap_host",
         "imap_user",
         "imap_pass",
-        "contacts_path",
         "downloads_dir",
         "state_path",
         "evolution_api_url",
         "evolution_api_key",
         "evolution_instance",
+        "db_path",
+        "web_host",
     )
     @classmethod
     def _strip(cls, v: Any) -> Any:
