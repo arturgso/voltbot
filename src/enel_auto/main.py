@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+import argparse
+from datetime import date
 
 from enel_auto.contacts import load_contacts_for_installation
 from enel_auto.domain import EnelBill, PendingDelivery
@@ -44,9 +45,24 @@ def process_day(day: date | None = None) -> list[PendingDelivery]:
     return deliveries
 
 
+def parse_args(args: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Processa faturas da Enel recebidas por email e envia via Evolution API."
+    )
+    parser.add_argument(
+        "--date",
+        type=date.fromisoformat,
+        default=date(2026, 9, 13),
+        help="Data para busca de faturas no email (formato AAAA-MM-DD). Padrão: 2026-09-13.",
+    )
+    return parser.parse_args(args)
+
+
 def main() -> None:
-    test_day = date.today() - timedelta(days=1)
-    deliveries = process_day(test_day)
+    cli_args = parse_args()
+    target_day = cli_args.date
+    print(f"Buscando faturas para o dia {target_day:%d/%m/%Y}...")
+    deliveries = process_day(target_day)
     print(f"Encontradas {len(deliveries)} contas")
 
     for delivery in deliveries:

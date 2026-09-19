@@ -37,3 +37,11 @@ class ProcessingState:
     pdf_name: str
     processed_at: date
     metadata: dict[str, Any] | None = None
+
+
+def normalize_phone(number: str) -> str:
+    digits = "".join(char for char in str(number) if char.isdigit())
+    if len(digits) in {10, 11}:
+        return f"55{digits}"
+    return digits
+

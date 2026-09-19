@@ -64,14 +64,21 @@ def load_contacts_for_installation(
                 )
             )
         elif isinstance(item, dict):
-            phone = str(item.get("phone") or item.get("number") or "")
-            name = item.get("name")
+            phone = str(
+                item.get("phone")
+                or item.get("number")
+                or item.get("telefone")
+                or ""
+            )
+            raw_name = item.get("name") or item.get("nome")
+            clean_name = str(raw_name).strip() if raw_name is not None else None
+            resolved_name = clean_name or None
             if phone.strip():
                 result.append(
                     WhatsAppContact(
                         installation=normalize_installation_key(installation),
                         phone=phone.strip(),
-                        name=str(name) if name else None,
+                        name=resolved_name,
                     )
                 )
 

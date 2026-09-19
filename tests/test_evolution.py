@@ -9,9 +9,11 @@ from enel_auto.evolution import (
     EvolutionClient,
     EvolutionSendResult,
     build_delivery_message,
+    build_intro_message,
     normalize_phone,
     send_pending_deliveries,
 )
+from enel_auto.state import is_intro_sent, mark_intro_sent
 
 
 class FakeResponse:
@@ -59,16 +61,33 @@ def test_build_delivery_message_has_bill_context():
     assert "Arquivo: conta.pdf" in message
 
 
+def test_build_intro_message_has_friendly_text_and_credits():
+    msg_with_name = build_intro_message("Bia")
+    assert "Olá, Bia!" in msg_with_name
+    assert "Bia" in msg_with_name
+    assert "Artur" in msg_with_name
+    assert "Enel" in msg_with_name
+    assert "WhatsApp" in msg_with_name
+    assert "API" not in msg_with_name
+    assert "Python" not in msg_with_name
+
+    msg_without_name = build_intro_message(None)
+    assert "Olá! Tudo bem?" in msg_without_name
+    assert "Bia" in msg_without_name
+    assert "Artur" in msg_without_name
+
+
 def test_send_pending_deliveries_without_contacts_does_not_require_client():
     assert send_pending_deliveries([]) == []
 
 
-def test_send_pending_deliveries_sends_text_then_pdf_and_marks_processed(
+def test_send_pending_deliveries_sends_intro_on_first_contact(
     monkeypatch, tmp_path: Path
 ):
     marked = []
     pdf = tmp_path / "conta.pdf"
     pdf.write_bytes(b"pdf")
+    state_file = tmp_path / "state.json"
     delivery = PendingDelivery(
         bill=EnelBill(
             installation="0200420281",
@@ -104,10 +123,68 @@ def test_send_pending_deliveries_sends_text_then_pdf_and_marks_processed(
     client = FakeClient()
     monkeypatch.setattr(
         "enel_auto.evolution.mark_processed",
-        lambda installation, pdf_name: marked.append((installation, pdf_name)),
+        lambda installation, pdf_name, path=None: marked.append((installation, pdf_name)),
     )
 
-    results = send_pending_deliveries([delivery], client)
+    results = send_pending_deliveries([delivery], client, state_path=state_file)
+
+    assert [call[0] for call in client.calls] == ["text", "text", "pdf"]
+    assert "Bia" in client.calls[0][2]
+    assert "Artur" in client.calls[0][2]
+    assert "Instalacao: 0200420281" in client.calls[1][2]
+    assert is_intro_sent("11934720814", path=state_file)
+    assert marked == [("0200420281", "conta.pdf")]
+    assert len(results) == 3
+
+
+def test_send_pending_deliveries_skips_intro_when_already_sent(
+    monkeypatch, tmp_path: Path
+):
+    marked = []
+    pdf = tmp_path / "conta.pdf"
+    pdf.write_bytes(b"pdf")
+    state_file = tmp_path / "state.json"
+    mark_intro_sent("11934720814", path=state_file)
+
+    delivery = PendingDelivery(
+        bill=EnelBill(
+            installation="0200420281",
+            subject="Enel - Conta por email",
+            date=date(2026, 9, 18),
+            pdf_name="conta.pdf",
+            pdf_bytes=b"pdf",
+            pdf_path=str(pdf),
+        ),
+        contacts=[
+            WhatsAppContact(
+                installation="0200420281",
+                phone="11934720814",
+                name="Contato",
+            )
+        ],
+    )
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, str | None]] = []
+
+        def send_text(self, number: str, text: str) -> EvolutionSendResult:
+            self.calls.append(("text", number, text))
+            return EvolutionSendResult(number, "/text", 201, {})
+
+        def send_pdf(
+            self, number: str, pdf_path: str | Path, caption: str | None = None
+        ) -> EvolutionSendResult:
+            self.calls.append(("pdf", number, str(pdf_path)))
+            return EvolutionSendResult(number, "/pdf", 201, {})
+
+    client = FakeClient()
+    monkeypatch.setattr(
+        "enel_auto.evolution.mark_processed",
+        lambda installation, pdf_name, path=None: marked.append((installation, pdf_name)),
+    )
+
+    results = send_pending_deliveries([delivery], client, state_path=state_file)
 
     assert [call[0] for call in client.calls] == ["text", "pdf"]
     assert "Instalacao: 0200420281" in client.calls[0][2]

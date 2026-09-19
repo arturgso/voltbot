@@ -10,8 +10,8 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from enel_auto.config import get_settings
-from enel_auto.domain import PendingDelivery
-from enel_auto.state import mark_processed
+from enel_auto.domain import PendingDelivery, normalize_phone
+from enel_auto.state import is_intro_sent, mark_intro_sent, mark_processed
 
 
 class UrlOpen(Protocol):
@@ -116,11 +116,16 @@ class EvolutionClient:
         )
 
 
-def normalize_phone(number: str) -> str:
-    digits = "".join(char for char in str(number) if char.isdigit())
-    if len(digits) in {10, 11}:
-        return f"55{digits}"
-    return digits
+def build_intro_message(contact_name: str | None = None) -> str:
+    greeting = f"Olá, {contact_name}!" if contact_name else "Olá!"
+    return (
+        f"{greeting} Tudo bem? 😊\n\n"
+        "Passando para avisar que agora você vai receber a conta de luz da Enel "
+        "direto aqui pelo WhatsApp assim que ela chegar, para facilitar o seu dia a dia "
+        "e você não precisar se preocupar!\n\n"
+        "Essa ideia foi da Bia e quem fez acontecer foi o Artur.\n\n"
+        "Já estou te enviando a fatura deste mês logo abaixo! 👇"
+    )
 
 
 def build_delivery_message(delivery: PendingDelivery, contact_name: str | None = None) -> str:
@@ -139,6 +144,7 @@ def build_delivery_message(delivery: PendingDelivery, contact_name: str | None =
 def send_pending_deliveries(
     deliveries: list[PendingDelivery],
     client: EvolutionClient | None = None,
+    state_path: str | Path | None = None,
 ) -> list[EvolutionSendResult]:
     deliveries_with_contacts = [
         delivery for delivery in deliveries if delivery.contacts
@@ -156,6 +162,11 @@ def send_pending_deliveries(
                 raise EvolutionError(
                     f"PDF sem caminho salvo para {delivery.bill.installation}"
                 )
+            if not is_intro_sent(contact.phone, path=state_path):
+                intro_message = build_intro_message(contact.name)
+                delivery_results.append(resolved_client.send_text(contact.phone, intro_message))
+                mark_intro_sent(contact.phone, path=state_path)
+
             message = build_delivery_message(delivery, contact.name)
             delivery_results.append(resolved_client.send_text(contact.phone, message))
             caption = f"Conta Enel - instalacao {delivery.bill.installation}"
@@ -163,7 +174,7 @@ def send_pending_deliveries(
                 resolved_client.send_pdf(contact.phone, delivery.bill.pdf_path, caption)
             )
 
-        mark_processed(delivery.bill.installation, delivery.bill.pdf_name)
+        mark_processed(delivery.bill.installation, delivery.bill.pdf_name, path=state_path)
         results.extend(delivery_results)
 
     return results

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from enel_auto.config import get_settings
+from enel_auto.domain import normalize_phone
 
 
 def state_path_for_key(path: str | Path | None = None) -> Path:
@@ -34,3 +36,20 @@ def mark_processed(installation: str, pdf_name: str, path: str | Path | None = N
 
 def already_processed(installation: str, pdf_name: str, path: str | Path | None = None) -> bool:
     return f"{installation}:{pdf_name}" in load_state(path)
+
+
+def is_intro_sent(phone: str, path: str | Path | None = None) -> bool:
+    normalized = normalize_phone(phone)
+    return f"intro:{normalized}" in load_state(path)
+
+
+def mark_intro_sent(phone: str, path: str | Path | None = None) -> None:
+    normalized = normalize_phone(phone)
+    file_path = state_path_for_key(path)
+    state = load_state(file_path)
+    state[f"intro:{normalized}"] = {
+        "sent": True,
+        "sent_at": datetime.now().isoformat(),
+    }
+    file_path.write_text(json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
+

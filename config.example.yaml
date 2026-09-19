@@ -1,5 +1,9 @@
+# Mapeamento de instalação/UC para lista de contatos do WhatsApp
+# Suporta:
+#   - phone / telefone: número com DDD (com ou sem 55)
+#   - name / nome: nome da pessoa para personalização das mensagens
 0200420281:
   - phone: "551199999999"
     name: "Contato 1"
-  - phone: "551188888888"
-    name: "Contato 2"
+  - telefone: "551188888888"
+    nome: "Contato 2"
