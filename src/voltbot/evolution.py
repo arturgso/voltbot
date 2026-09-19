@@ -117,14 +117,12 @@ class EvolutionClient:
 
 
 def format_installation_line(
-    installation: str, installation_label: str | None, bill_date=None, pdf_name: str | None = None
+    installation: str, installation_label: str | None, bill_date=None
 ) -> str:
     label = f" ({installation_label})" if (installation_label or "").strip() else ""
     line = f"Instalacao: {installation}{label}"
     if bill_date is not None:
         line += f" | Data: {bill_date:%d/%m/%Y}"
-    if pdf_name:
-        line += f" | Arquivo: {pdf_name}"
     return line
 
 
@@ -155,8 +153,7 @@ def build_delivery_message(
     return (
         f"{greeting}\n"
         "Acabei de receber a sua conta de luz da Enel por e-mail e já estou te enviando 👇\n\n"
-        f"{format_installation_line(bill.installation, installation_label, bill.date, bill.pdf_name)}\n\n"
-        "Qualquer dúvida é só me chamar! ⚡"
+        f"{format_installation_line(bill.installation, installation_label, bill.date)}"
     )
 
 
@@ -170,17 +167,14 @@ def build_combined_message(
     """
     greeting = f"Olá, {contact_name}! Aqui é o VoltBot ⚡" if contact_name else "Olá! Aqui é o VoltBot ⚡"
     lines = [
-        format_installation_line(
-            delivery.bill.installation, label, delivery.bill.date, delivery.bill.pdf_name
-        )
+        format_installation_line(delivery.bill.installation, label, delivery.bill.date)
         for delivery, label in items
     ]
     listing = "\n".join(f"- {line}" for line in lines)
     return (
         f"{greeting}\n"
         f"Acabei de receber {len(items)} contas de luz da Enel no e-mail e já estou te enviando 👇\n\n"
-        f"{listing}\n\n"
-        "Qualquer dúvida é só me chamar! ⚡"
+        f"{listing}"
     )
 
 

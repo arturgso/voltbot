@@ -61,7 +61,7 @@ def test_build_delivery_message_has_bill_context():
     assert "VoltBot" in message
     assert "Instalacao: 0200420281" in message
     assert "Data: 18/09/2026" in message
-    assert "Arquivo: conta.pdf" in message
+    assert "conta.pdf" not in message
 
 
 def test_build_delivery_message_includes_installation_label():
@@ -283,7 +283,7 @@ def test_build_combined_message_lists_all_installations_with_labels():
     assert "2 contas" in message
     assert "Instalacao: 0200420281 (Casa)" in message
     assert "Instalacao: 0300530392 (Sítio)" in message
-    assert "casa.pdf" in message and "sitio.pdf" in message
+    assert "casa.pdf" not in message and "sitio.pdf" not in message
 
 
 def test_group_deliveries_by_contact_merges_shared_phone(tmp_path: Path):
