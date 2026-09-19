@@ -30,6 +30,23 @@ export interface Status {
   last_run: RunSummary | null;
 }
 
+export interface PreviewBill {
+  installation: string;
+  installation_label: string | null;
+  bill_date: string;
+  pdf_name: string;
+  barcode: string | null;
+}
+
+export interface PreviewItem {
+  phone: string;
+  name: string | null;
+  intro: boolean;
+  text: string;
+  barcode_messages: string[];
+  bills: PreviewBill[];
+}
+
 export interface Installation {
   code: string;
   label: string | null;

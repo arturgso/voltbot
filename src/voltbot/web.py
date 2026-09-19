@@ -27,6 +27,10 @@ class RunRequest(BaseModel):
     date: str | None = Field(default=None, description="AAAA-MM-DD para mode=date")
     month: str | None = Field(default=None, description="AAAA-MM para mode=month")
     dry_run: bool = False
+    barcode_only: bool = Field(
+        default=False,
+        description="Envia só o código de barras das contas já enviadas no período",
+    )
 
 
 class InstallationCreate(BaseModel):
@@ -78,18 +82,26 @@ def _execute_run(db_path: str, run_id: int, payload: dict) -> None:
                 db.log(run_id, level, line)
 
     try:
-        db.log(run_id, "INFO", f"início: modo={payload.get('mode')} dry_run={payload.get('dry_run')}")
+        db.log(run_id, "INFO", f"início: modo={payload.get('mode')} dry_run={payload.get('dry_run')} barcode_only={payload.get('barcode_only', False)}")
         with redirect_stdout(buffer):
             if payload.get("mode") == "month":
                 year, month = parse_month(payload["month"])
-                summary = run_cycle(month=(year, month), dry_run=payload.get("dry_run", False))
+                summary = run_cycle(
+                    month=(year, month),
+                    dry_run=payload.get("dry_run", False),
+                    barcode_only=payload.get("barcode_only", False),
+                )
             else:
                 target = (
                     date.fromisoformat(payload["date"])
                     if payload.get("mode") == "date" and payload.get("date")
                     else date.today()
                 )
-                summary = run_cycle(target, dry_run=payload.get("dry_run", False))
+                summary = run_cycle(
+                    target,
+                    dry_run=payload.get("dry_run", False),
+                    barcode_only=payload.get("barcode_only", False),
+                )
         flush_buffer()
         db.finish_run(run_id, "done", summary)
     except EvolutionError as exc:
@@ -115,6 +127,11 @@ def create_app(db_path: str | None = None) -> FastAPI:
         seed_from_settings(db, get_settings())
     finally:
         db.close()
+
+    @app.get("/health")
+    @app.get("/api/health")
+    def health() -> dict:
+        return {"status": "ok"}
 
     @app.get("/api/status")
     def status() -> dict:

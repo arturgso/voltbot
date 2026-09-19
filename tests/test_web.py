@@ -15,6 +15,13 @@ def client(tmp_path, monkeypatch):
         yield test_client
 
 
+def test_health_returns_ok(client):
+    for path in ("/health", "/api/health"):
+        res = client.get(path)
+        assert res.status_code == 200
+        assert res.json() == {"status": "ok"}
+
+
 def test_status_shape(client):
     data = client.get("/api/status").json()
     assert set(data) >= {
@@ -107,8 +114,8 @@ def test_run_validation(client):
 def test_run_executes_in_background_with_dry_run(client, monkeypatch):
     calls = []
 
-    def fake_run_cycle(target_day=None, *, month=None, dry_run=False):
-        calls.append((target_day, month, dry_run))
+    def fake_run_cycle(target_day=None, *, month=None, dry_run=False, barcode_only=False):
+        calls.append((target_day, month, dry_run, barcode_only))
         print("ciclo fake executado")
         return {"deliveries": 1, "messages": 2, "dry_run": dry_run}
 
@@ -129,6 +136,7 @@ def test_run_executes_in_background_with_dry_run(client, monkeypatch):
     assert run["summary"]["messages"] == 2
     assert any("ciclo fake" in log["message"] for log in run["logs"])
     assert calls and calls[0][2] is True
+    assert calls[0][3] is False
 
     listed = client.get("/api/runs").json()
     assert listed[0]["id"] == run_id
@@ -136,6 +144,31 @@ def test_run_executes_in_background_with_dry_run(client, monkeypatch):
     assert client.delete(f"/api/runs/{run_id}").status_code == 204
     assert client.get(f"/api/runs/{run_id}").status_code == 404
     assert client.get("/api/runs").json() == []
+
+
+def test_run_forwards_barcode_only_flag(client, monkeypatch):
+    calls = []
+
+    def fake_run_cycle(target_day=None, *, month=None, dry_run=False, barcode_only=False):
+        calls.append((target_day, month, dry_run, barcode_only))
+        return {"deliveries": 1, "messages": 1, "dry_run": dry_run, "barcode_only": barcode_only}
+
+    monkeypatch.setattr(web_module, "run_cycle", fake_run_cycle)
+
+    res = client.post("/api/runs", json={"mode": "today", "barcode_only": True})
+    assert res.status_code == 202
+    run_id = res.json()["id"]
+
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        run = client.get(f"/api/runs/{run_id}").json()
+        if run["status"] != "running":
+            break
+        time.sleep(0.1)
+
+    assert run["status"] == "done"
+    assert run["summary"]["barcode_only"] is True
+    assert calls and calls[0][3] is True
 
 
 def test_index_serves_frontend(client):

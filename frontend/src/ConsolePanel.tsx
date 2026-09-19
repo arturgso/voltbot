@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Badge, Box, Button, Divider, Group, Text } from '@mantine/core';
-import { formatDuration, type RunDetail } from './api';
+import { Badge, Box, Button, Card, Divider, Group, Text } from '@mantine/core';
+import { formatDuration, type PreviewItem, type RunDetail } from './api';
 
 export default function ConsolePanel({ run }: { run: RunDetail | null }) {
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -25,7 +25,10 @@ export default function ConsolePanel({ run }: { run: RunDetail | null }) {
     }
   };
 
-  const summary = (run?.summary || {}) as { deliveries?: number; messages?: number };
+  const summary = (run?.summary || {}) as {
+    deliveries?: number;
+    messages?: number;
+  };
 
   return (
     <Box
@@ -104,6 +107,88 @@ export default function ConsolePanel({ run }: { run: RunDetail | null }) {
           </Badge>
         )}
       </Group>
+    </Box>
+  );
+}
+
+export function PreviewPanel({ run }: { run: RunDetail | null }) {
+  const summary = (run?.summary || {}) as { preview?: PreviewItem[] };
+  const preview = summary.preview || [];
+  if (!run || preview.length === 0) return null;
+
+  const copyBarcode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+  };
+
+  return (
+    <Box mt="md">
+      {preview.map((item, i) => (
+        <Card key={i} withBorder padding="md" mb="sm">
+          <Group justify="space-between" mb="xs">
+            <Text size="sm" fw={700}>
+              {item.name || item.phone} — {item.phone}
+            </Text>
+            {item.intro && (
+              <Badge color="blue" variant="light">
+                INTRO
+              </Badge>
+            )}
+          </Group>
+          {item.text ? (
+            <Text size="xs" ff="monospace" style={{ whiteSpace: 'pre-wrap' }} mb="sm">
+              {item.text}
+            </Text>
+          ) : null}
+          {(item.barcode_messages || []).map((code, k) => (
+            <Box
+              key={`barcode-${k}`}
+              px="sm"
+              py="xs"
+              mb="sm"
+              style={{ background: '#f1f3f5', borderRadius: 4 }}
+            >
+              <Text size="xs" c="dimmed" tt="uppercase" mb={4}>
+                Código de barras (mensagem própria)
+              </Text>
+              <Group gap="xs">
+                <Text size="xs" ff="monospace" style={{ wordBreak: 'break-all' }}>
+                  {code}
+                </Text>
+                <Button size="xs" variant="light" onClick={() => copyBarcode(code)}>
+                  COPIAR
+                </Button>
+              </Group>
+            </Box>
+          ))}
+          {item.bills.map((bill, j) => (
+            <Box
+              key={j}
+              py="xs"
+              style={{ borderTop: '1px solid #e9ecef' }}
+            >
+              <Text size="xs" c="dimmed">
+                Instalação {bill.installation}
+                {bill.installation_label ? ` (${bill.installation_label})` : ''} — {bill.bill_date} —{' '}
+                {bill.pdf_name}
+              </Text>
+              {!bill.barcode && (
+                <Text size="xs" c="red">
+                  Código de barras não encontrado no e-mail
+                </Text>
+              )}
+            </Box>
+          ))}
+        </Card>
+      ))}
     </Box>
   );
 }

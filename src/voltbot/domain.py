@@ -16,6 +16,7 @@ class EnelBill:
     pdf_name: str
     pdf_bytes: bytes
     pdf_path: str | None = None
+    barcode: str | None = None
 
 
 @dataclass(frozen=True)

@@ -126,6 +126,12 @@ def format_installation_line(
     return line
 
 
+def build_barcode_message(barcode: str | None) -> str | None:
+    """Mensagem propria so com o codigo de barras (somente digitos, copia-e-cola)."""
+    digits = "".join(ch for ch in str(barcode or "") if ch.isdigit())
+    return digits or None
+
+
 def build_intro_message(contact_name: str | None = None) -> str:
     greeting = f"Olá, {contact_name}! Aqui é o VoltBot ⚡" if contact_name else "Olá! Aqui é o VoltBot ⚡"
     return (
@@ -150,11 +156,12 @@ def build_delivery_message(
             if contact.installation == bill.installation and contact.installation_label:
                 installation_label = contact.installation_label
                 break
-    return (
+    text = (
         f"{greeting}\n"
         "Acabei de receber a sua conta de luz da Enel por e-mail e já estou te enviando 👇\n\n"
         f"{format_installation_line(bill.installation, installation_label, bill.date)}"
     )
+    return text
 
 
 def build_combined_message(
@@ -251,11 +258,50 @@ def send_pending_deliveries(
             message = build_combined_message(group.items, group.name)
         results.append(resolved_client.send_text(group.phone, message))
 
+        for delivery, _label in group.items:
+            barcode_message = build_barcode_message(delivery.bill.barcode)
+            if barcode_message:
+                results.append(resolved_client.send_text(group.phone, barcode_message))
+
         for delivery, label in group.items:
             caption = format_installation_line(delivery.bill.installation, label)
             results.append(
                 resolved_client.send_pdf(group.phone, delivery.bill.pdf_path, caption)
             )
             mark_processed(delivery.bill.installation, delivery.bill.pdf_name, path=state_path)
+
+    return results
+
+
+def send_barcode_only_deliveries(
+    deliveries: list[PendingDelivery],
+    client: EvolutionClient | None = None,
+    state_path: str | Path | None = None,
+) -> list[EvolutionSendResult]:
+    """Send only the standalone barcode message per bill.
+
+    Catch-up for bills already delivered before the barcode feature:
+    no intro, no info text and no PDF — one digits-only message per bill.
+    Identical codes for the same number are deduplicated.
+    """
+    deliveries_with_barcodes = [
+        delivery
+        for delivery in deliveries
+        if delivery.contacts and build_barcode_message(delivery.bill.barcode)
+    ]
+    if not deliveries_with_barcodes:
+        return []
+
+    resolved_client = client or EvolutionClient()
+    results: list[EvolutionSendResult] = []
+
+    for group in group_deliveries_by_contact(deliveries_with_barcodes, state_path=state_path):
+        seen: set[str] = set()
+        for delivery, _label in group.items:
+            code = build_barcode_message(delivery.bill.barcode)
+            if not code or code in seen:
+                continue
+            seen.add(code)
+            results.append(resolved_client.send_text(group.phone, code))
 
     return results

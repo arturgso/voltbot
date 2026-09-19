@@ -14,5 +14,6 @@ wheels/
 # Runtime-generated files
 downloads/
 state.json
+state/
 data/
 frontend/node_modules/

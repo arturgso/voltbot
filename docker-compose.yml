@@ -78,11 +78,11 @@ services:
       STATE_PATH: /app/state/state.json
       DB_PATH: /app/data/voltbot.db
       EVOLUTION_API_URL: http://evolution-api:8080
-      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-Vega}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-VoltBot}
       POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-3600}
     volumes:
-      - enel_downloads:/app/downloads
-      - enel_state:/app/state
+      - ./downloads:/app/downloads
+      - ./state:/app/state
       - enel_data:/app/data
     depends_on:
       evolution-api:
@@ -105,10 +105,10 @@ services:
       STATE_PATH: /app/state/state.json
       DB_PATH: /app/data/voltbot.db
       EVOLUTION_API_URL: http://evolution-api:8080
-      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-Vega}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-VoltBot}
     volumes:
-      - enel_downloads:/app/downloads
-      - enel_state:/app/state
+      - ./downloads:/app/downloads
+      - ./state:/app/state
       - enel_data:/app/data
     depends_on:
       evolution-api:
@@ -120,8 +120,6 @@ volumes:
   evolution_instances:
   evolution_postgres:
   evolution_redis:
-  enel_downloads:
-  enel_state:
   enel_data:
 
 networks:
