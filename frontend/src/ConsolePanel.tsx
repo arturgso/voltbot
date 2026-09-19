@@ -146,6 +146,27 @@ export function PreviewPanel({ run }: { run: RunDetail | null }) {
           <Text size="xs" ff="monospace" style={{ whiteSpace: 'pre-wrap' }} mb="sm">
             {item.text}
           </Text>
+          {(item.barcode_messages || []).map((code, k) => (
+            <Box
+              key={`barcode-${k}`}
+              px="sm"
+              py="xs"
+              mb="sm"
+              style={{ background: '#f1f3f5', borderRadius: 4 }}
+            >
+              <Text size="xs" c="dimmed" tt="uppercase" mb={4}>
+                Código de barras (mensagem própria)
+              </Text>
+              <Group gap="xs">
+                <Text size="xs" ff="monospace" style={{ wordBreak: 'break-all' }}>
+                  {code}
+                </Text>
+                <Button size="xs" variant="light" onClick={() => copyBarcode(code)}>
+                  COPIAR
+                </Button>
+              </Group>
+            </Box>
+          ))}
           {item.bills.map((bill, j) => (
             <Box
               key={j}
@@ -157,16 +178,7 @@ export function PreviewPanel({ run }: { run: RunDetail | null }) {
                 {bill.installation_label ? ` (${bill.installation_label})` : ''} — {bill.bill_date} —{' '}
                 {bill.pdf_name}
               </Text>
-              {bill.barcode ? (
-                <Group gap="xs" mt={4}>
-                  <Text size="xs" ff="monospace" style={{ wordBreak: 'break-all' }}>
-                    {bill.barcode}
-                  </Text>
-                  <Button size="xs" variant="light" onClick={() => copyBarcode(bill.barcode!)}>
-                    COPIAR CÓDIGO
-                  </Button>
-                </Group>
-              ) : (
+              {!bill.barcode && (
                 <Text size="xs" c="red">
                   Código de barras não encontrado no e-mail
                 </Text>

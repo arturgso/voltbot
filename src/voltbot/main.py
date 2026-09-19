@@ -144,10 +144,11 @@ def build_preview(
 ) -> list[dict]:
     """Describe what a dry run would send, without any side effect.
 
-    Mirrors the grouped sending: one text per contact (plus intro when due)
-    and one PDF per bill.
+    Mirrors the grouped sending: one text per contact (plus intro when due),
+    one barcode-only message per bill with barcode, and one PDF per bill.
     """
     from voltbot.evolution import (
+        build_barcode_message,
         build_combined_message,
         build_delivery_message,
         group_deliveries_by_contact,
@@ -160,12 +161,18 @@ def build_preview(
             text = build_delivery_message(delivery, group.name, label)
         else:
             text = build_combined_message(group.items, group.name)
+        barcode_messages = [
+            barcode_message
+            for delivery, _label in group.items
+            if (barcode_message := build_barcode_message(delivery.bill.barcode))
+        ]
         preview.append(
             {
                 "phone": group.phone,
                 "name": group.name,
                 "intro": group.needs_intro,
                 "text": text,
+                "barcode_messages": barcode_messages,
                 "bills": [
                     {
                         "installation": delivery.bill.installation,
@@ -211,7 +218,11 @@ def run_cycle(
     if dry_run:
         preview = build_preview(deliveries)
         total_messages = sum(
-            len(item["bills"]) + 1 + (1 if item["intro"] else 0) for item in preview
+            len(item["bills"])
+            + len(item.get("barcode_messages", []))
+            + 1
+            + (1 if item["intro"] else 0)
+            for item in preview
         )
         print(f"[dry-run] {total_messages} mensagens seriam enviadas (nada disparado)")
         return {

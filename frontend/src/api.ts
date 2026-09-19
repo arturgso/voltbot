@@ -43,6 +43,7 @@ export interface PreviewItem {
   name: string | null;
   intro: boolean;
   text: string;
+  barcode_messages: string[];
   bills: PreviewBill[];
 }
 
