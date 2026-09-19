@@ -74,41 +74,68 @@ def process_month(year: int, month: int) -> list[PendingDelivery]:
     return collect_deliveries(find_range_emails(start, end))
 
 
-def collect_barcode_catchup(messages: list[MailMessage]) -> list[PendingDelivery]:
-    """Keep bills already delivered that still need the barcode-only message.
+def collect_barcode_catchup(
+    messages: list[MailMessage], *, include_unprocessed: bool = False
+) -> tuple[list[PendingDelivery], dict]:
+    """Keep bills that still need the barcode-only message.
 
-    Matches today's (or the requested period's) emails against the processed
-    state: only bills with a barcode, already marked as sent and with
-    registered contacts are returned. No PDF is saved and no state is touched.
+    By default only bills already marked as sent are returned; with
+    ``include_unprocessed`` every bill with barcode and contacts is kept.
+    No PDF is saved and no state is touched. Returns (deliveries, stats)
+    where stats breaks down each filter stage for log diagnostics.
     """
+    stats = {
+        "emails": len(messages),
+        "parsed": 0,
+        "with_barcode": 0,
+        "already_sent": 0,
+        "with_contacts": 0,
+    }
     deliveries: list[PendingDelivery] = []
 
     for msg in messages:
         bill = parse_mail_message(msg)
-        if bill is None or not bill.barcode:
+        if bill is None:
             continue
+        stats["parsed"] += 1
 
-        if not already_processed(bill.installation, bill.pdf_name):
+        if not bill.barcode:
+            continue
+        stats["with_barcode"] += 1
+
+        is_sent = already_processed(bill.installation, bill.pdf_name)
+        if is_sent:
+            stats["already_sent"] += 1
+        elif not include_unprocessed:
             continue
 
         contacts = load_contacts_for_installation(bill.installation)
         if not contacts:
             continue
+        stats["with_contacts"] += 1
         deliveries.append(PendingDelivery(bill=bill, contacts=contacts))
 
-    return deliveries
+    return deliveries, stats
 
 
-def process_barcode_catchup_day(day: date | None = None) -> list[PendingDelivery]:
+def process_barcode_catchup_day(
+    day: date | None = None, *, include_unprocessed: bool = False
+) -> tuple[list[PendingDelivery], dict]:
     """Barcode-only catch-up for bills of a single day already delivered."""
     resolved_day = day or date.today()
-    return collect_barcode_catchup(find_day_emails(resolved_day))
+    return collect_barcode_catchup(
+        find_day_emails(resolved_day), include_unprocessed=include_unprocessed
+    )
 
 
-def process_barcode_catchup_month(year: int, month: int) -> list[PendingDelivery]:
+def process_barcode_catchup_month(
+    year: int, month: int, *, include_unprocessed: bool = False
+) -> tuple[list[PendingDelivery], dict]:
     """Barcode-only catch-up for bills of a whole month already delivered."""
     start, end = month_bounds(year, month)
-    return collect_barcode_catchup(find_range_emails(start, end))
+    return collect_barcode_catchup(
+        find_range_emails(start, end), include_unprocessed=include_unprocessed
+    )
 
 
 def parse_month(value: str) -> tuple[int, int]:
@@ -163,6 +190,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Envia APENAS o código de barras (mensagem própria) das contas "
         "já enviadas no período, sem reenviar texto nem PDF.",
+    )
+    parser.add_argument(
+        "--barcode-all",
+        action="store_true",
+        help="Com --barcode-only, inclui também contas ainda não marcadas "
+        "como enviadas (todas com código de barras e contato).",
     )
     return parser.parse_args(args)
 
@@ -238,26 +271,38 @@ def run_cycle(
     month: tuple[int, int] | None = None,
     dry_run: bool = False,
     barcode_only: bool = False,
+    barcode_all: bool = False,
 ) -> dict:
+    catchup_stats: dict | None = None
     if month is not None:
         label = f"{month[0]:04d}-{month[1]:02d}"
         print(f"[{datetime.now():%d/%m/%Y %H:%M:%S}] Buscando faturas do mês {label}...")
-        deliveries = (
-            process_barcode_catchup_month(*month) if barcode_only else process_month(*month)
-        )
+        if barcode_only:
+            deliveries, catchup_stats = process_barcode_catchup_month(
+                *month, include_unprocessed=barcode_all
+            )
+        else:
+            deliveries = process_month(*month)
     else:
         resolved_day = target_day or date.today()
         print(
             f"[{datetime.now():%d/%m/%Y %H:%M:%S}] "
             f"Buscando faturas para o dia {resolved_day:%d/%m/%Y}..."
         )
-        deliveries = (
-            process_barcode_catchup_day(resolved_day)
-            if barcode_only
-            else process_day(resolved_day)
+        if barcode_only:
+            deliveries, catchup_stats = process_barcode_catchup_day(
+                resolved_day, include_unprocessed=barcode_all
+            )
+        else:
+            deliveries = process_day(resolved_day)
+    if barcode_only and catchup_stats is not None:
+        print(
+            f"E-mails lidos: {catchup_stats['emails']} | faturas: {catchup_stats['parsed']} | "
+            f"com barras: {catchup_stats['with_barcode']} | "
+            f"já enviadas: {catchup_stats['already_sent']} | "
+            f"com contato: {catchup_stats['with_contacts']}"
         )
-    if barcode_only:
-        print(f"Encontradas {len(deliveries)} contas já enviadas com código de barras")
+        print(f"Encontradas {len(deliveries)} contas para reenvio só do código de barras")
     else:
         print(f"Encontradas {len(deliveries)} contas")
 
@@ -288,6 +333,8 @@ def run_cycle(
             "messages": total_messages,
             "dry_run": True,
             "barcode_only": barcode_only,
+            "barcode_all": barcode_all,
+            "catchup_stats": catchup_stats,
             "preview": preview,
         }
 
@@ -303,6 +350,7 @@ def run_cycle(
         "messages": len(results),
         "dry_run": False,
         "barcode_only": barcode_only,
+        "barcode_all": barcode_all,
     }
 
 
@@ -314,6 +362,7 @@ def main() -> None:
                 month=cli_args.month,
                 dry_run=cli_args.dry_run,
                 barcode_only=cli_args.barcode_only,
+                barcode_all=cli_args.barcode_all,
             )
         except EvolutionError as exc:
             raise SystemExit(f"Falha no envio pela Evolution API: {exc}") from exc
@@ -326,6 +375,7 @@ def main() -> None:
                 resolve_target_day(cli_args.date),
                 dry_run=cli_args.dry_run,
                 barcode_only=cli_args.barcode_only,
+                barcode_all=cli_args.barcode_all,
             )
         except EvolutionError as exc:
             raise SystemExit(f"Falha no envio pela Evolution API: {exc}") from exc
@@ -338,6 +388,7 @@ def main() -> None:
                 resolve_target_day(cli_args.date),
                 dry_run=cli_args.dry_run,
                 barcode_only=cli_args.barcode_only,
+                barcode_all=cli_args.barcode_all,
             )
         except EvolutionError as exc:
             print(f"Falha no envio pela Evolution API: {exc} — tentando de novo em {interval}s")

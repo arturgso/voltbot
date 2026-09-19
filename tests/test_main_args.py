@@ -41,6 +41,8 @@ def test_parse_args_dry_run_and_month():
 def test_parse_args_barcode_only_defaults_to_false():
     assert parse_args([]).barcode_only is False
     assert parse_args(["--barcode-only"]).barcode_only is True
+    assert parse_args([]).barcode_all is False
+    assert parse_args(["--barcode-only", "--barcode-all"]).barcode_all is True
 
 
 def _fake_msg(body_extra="", *, installation="0200420281", pdf_name="conta.pdf", barcode="1" * 48):
@@ -78,11 +80,37 @@ def test_collect_barcode_catchup_only_resends_processed_with_barcode(monkeypatch
         _fake_msg(pdf_name="enviada.pdf", barcode=None),  # enviada, mas sem barras
     ]
 
-    deliveries = collect_barcode_catchup(messages)
+    deliveries, stats = collect_barcode_catchup(messages)
 
     assert len(deliveries) == 1
     assert deliveries[0].bill.barcode == "2" * 48
     assert deliveries[0].contacts == [contact]
+    assert stats == {
+        "emails": 3,
+        "parsed": 3,
+        "with_barcode": 2,
+        "already_sent": 1,
+        "with_contacts": 1,
+    }
+
+
+def test_collect_barcode_catchup_with_all_includes_unprocessed(monkeypatch):
+    from voltbot.domain import WhatsAppContact
+    from voltbot.main import collect_barcode_catchup
+
+    contact = WhatsAppContact(installation="0200420281", phone="11999999999", name="Bia")
+    monkeypatch.setattr(main_module, "already_processed", lambda installation, pdf_name: False)
+    monkeypatch.setattr(
+        main_module, "load_contacts_for_installation", lambda installation: [contact]
+    )
+
+    deliveries, stats = collect_barcode_catchup(
+        [_fake_msg(pdf_name="nova.pdf", barcode="3" * 48)], include_unprocessed=True
+    )
+
+    assert len(deliveries) == 1
+    assert stats["already_sent"] == 0
+    assert stats["with_contacts"] == 1
 
 
 def test_collect_barcode_catchup_skips_installation_without_contacts(monkeypatch):
@@ -91,7 +119,10 @@ def test_collect_barcode_catchup_skips_installation_without_contacts(monkeypatch
     monkeypatch.setattr(main_module, "already_processed", lambda installation, pdf_name: True)
     monkeypatch.setattr(main_module, "load_contacts_for_installation", lambda installation: [])
 
-    assert collect_barcode_catchup([_fake_msg()]) == []
+    deliveries, stats = collect_barcode_catchup([_fake_msg()])
+
+    assert deliveries == []
+    assert stats["with_contacts"] == 0
 
 
 def test_month_bounds_spans_full_month():

@@ -73,6 +73,7 @@ export default function RunTab({
   const [month, setMonth] = useState('atual');
   const [dryRun, setDryRun] = useState(false);
   const [barcodeOnly, setBarcodeOnly] = useState(false);
+  const [barcodeAll, setBarcodeAll] = useState(false);
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<RunDetail | null>(null);
@@ -139,7 +140,7 @@ export default function RunTab({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const body: Record<string, unknown> = { mode, dry_run: dryRun, barcode_only: barcodeOnly };
+    const body: Record<string, unknown> = { mode, dry_run: dryRun, barcode_only: barcodeOnly, barcode_all: barcodeAll };
     if (mode === 'date') body.date = date;
     if (mode === 'month') body.month = month === 'atual' ? currentYearMonth() : month;
     setBusy(true);
@@ -267,6 +268,13 @@ export default function RunTab({
                   checked={barcodeOnly}
                   onChange={(e) => setBarcodeOnly(e.target.checked)}
                 />
+                {barcodeOnly && (
+                  <Checkbox
+                    label="Incluir todas (mesmo as ainda não enviadas)"
+                    checked={barcodeAll}
+                    onChange={(e) => setBarcodeAll(e.target.checked)}
+                  />
+                )}
                 <Button type="submit" fullWidth loading={busy}>
                   EXECUTAR AUTOMAÇÃO
                 </Button>

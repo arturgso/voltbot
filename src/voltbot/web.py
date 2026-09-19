@@ -31,6 +31,10 @@ class RunRequest(BaseModel):
         default=False,
         description="Envia só o código de barras das contas já enviadas no período",
     )
+    barcode_all: bool = Field(
+        default=False,
+        description="Com barcode_only, inclui também contas ainda não enviadas",
+    )
 
 
 class InstallationCreate(BaseModel):
@@ -82,7 +86,7 @@ def _execute_run(db_path: str, run_id: int, payload: dict) -> None:
                 db.log(run_id, level, line)
 
     try:
-        db.log(run_id, "INFO", f"início: modo={payload.get('mode')} dry_run={payload.get('dry_run')} barcode_only={payload.get('barcode_only', False)}")
+        db.log(run_id, "INFO", f"início: modo={payload.get('mode')} dry_run={payload.get('dry_run')} barcode_only={payload.get('barcode_only', False)} barcode_all={payload.get('barcode_all', False)}")
         with redirect_stdout(buffer):
             if payload.get("mode") == "month":
                 year, month = parse_month(payload["month"])
@@ -90,6 +94,7 @@ def _execute_run(db_path: str, run_id: int, payload: dict) -> None:
                     month=(year, month),
                     dry_run=payload.get("dry_run", False),
                     barcode_only=payload.get("barcode_only", False),
+                    barcode_all=payload.get("barcode_all", False),
                 )
             else:
                 target = (
@@ -101,6 +106,7 @@ def _execute_run(db_path: str, run_id: int, payload: dict) -> None:
                     target,
                     dry_run=payload.get("dry_run", False),
                     barcode_only=payload.get("barcode_only", False),
+                    barcode_all=payload.get("barcode_all", False),
                 )
         flush_buffer()
         db.finish_run(run_id, "done", summary)
