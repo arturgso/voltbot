@@ -146,7 +146,51 @@ def test_build_delivery_message_has_bill_context():
     assert "VoltBot" in message
     assert "Instalacao: 0200420281" in message
     assert "Data: 18/09/2026" in message
+    assert "Valor:" not in message
     assert "conta.pdf" not in message
+
+
+def test_build_delivery_message_includes_amount():
+    delivery = PendingDelivery(
+        bill=EnelBill(
+            installation="0200420281",
+            subject="Enel - Conta por email",
+            date=date(2026, 9, 18),
+            pdf_name="conta.pdf",
+            pdf_bytes=b"pdf",
+            pdf_path="downloads/conta.pdf",
+            amount="142,79",
+        ),
+        contacts=[],
+    )
+
+    message = build_delivery_message(delivery, "Artur")
+
+    assert "Valor: R$ 142,79" in message
+
+
+def test_build_combined_message_includes_amounts():
+    deliveries = [
+        PendingDelivery(bill=_bill("0200420281", "casa.pdf", "x"), contacts=[]),
+        PendingDelivery(
+            bill=EnelBill(
+                installation="0300530392",
+                subject="Enel - Conta por email",
+                date=date(2026, 9, 18),
+                pdf_name="sitio.pdf",
+                pdf_bytes=b"pdf",
+                pdf_path="x",
+                amount="89,90",
+            ),
+            contacts=[],
+        ),
+    ]
+    message = build_combined_message(
+        [(deliveries[0], "Casa"), (deliveries[1], "Sítio")], "Bia"
+    )
+
+    assert "Instalacao: 0300530392 (Sítio)" in message
+    assert "Valor: R$ 89,90" in message
 
 
 def test_build_delivery_message_includes_installation_label():

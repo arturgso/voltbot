@@ -45,6 +45,7 @@ def collect_deliveries(messages: list[MailMessage]) -> list[PendingDelivery]:
             pdf_bytes=bill.pdf_bytes,
             pdf_path=pdf_path,
             barcode=bill.barcode,
+            amount=bill.amount,
         )
         deliveries.append(PendingDelivery(bill=bill_with_path, contacts=contacts))
 
@@ -257,6 +258,7 @@ def build_preview(
                         "bill_date": delivery.bill.date.isoformat(),
                         "pdf_name": delivery.bill.pdf_name,
                         "barcode": delivery.bill.barcode,
+                        "amount": delivery.bill.amount,
                     }
                     for delivery, label in group.items
                 ],

@@ -179,6 +179,7 @@ export function PreviewPanel({ run }: { run: RunDetail | null }) {
                 Instalação {bill.installation}
                 {bill.installation_label ? ` (${bill.installation_label})` : ''} — {bill.bill_date} —{' '}
                 {bill.pdf_name}
+                {bill.amount ? ` — R$ ${bill.amount}` : ''}
               </Text>
               {!bill.barcode && (
                 <Text size="xs" c="red">

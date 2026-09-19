@@ -22,6 +22,14 @@ BARCODE_PLAIN_REGEX = re.compile(r"\d{44,48}")
 
 VALID_BARCODE_LENGTHS = {44, 47, 48}
 
+# Valor da fatura no corpo do e-mail ("Quanto eu vou pagar? R$ 142,79").
+AMOUNT_LABELED_REGEX = re.compile(
+    r"(?:quanto\s+(?:eu\s+)?vou\s+pagar|valor\s+(?:total\s+)?(?:a\s+pagar|da\s+(?:conta|fatura)))"
+    r"[^0-9R$]{0,40}R\$\s*(\d[\d.]*,\d{2})",
+    re.IGNORECASE,
+)
+AMOUNT_FALLBACK_REGEX = re.compile(r"R\$\s*(\d[\d.]*,\d{2})")
+
 
 def strip_html(value: str) -> str:
     """Remove tags HTML e entidades para facilitar a busca por regex."""
@@ -85,6 +93,25 @@ def format_barcode_for_display(barcode: str | None) -> str | None:
     return digits or None
 
 
+def extract_amount_from_body(body: str) -> str | None:
+    """Extrai o valor da fatura (ex.: "142,79") do corpo do e-mail.
+
+    Prioriza o trecho rotulado ("quanto vou pagar", "valor a pagar");
+    sem rotulo, usa o primeiro valor em R$. Retorna None quando ausente.
+    """
+    if not body:
+        return None
+    text = strip_html(body)
+
+    labeled = AMOUNT_LABELED_REGEX.search(text)
+    if labeled:
+        return labeled.group(1)
+    fallback = AMOUNT_FALLBACK_REGEX.search(text)
+    if fallback:
+        return fallback.group(1)
+    return None
+
+
 def extract_installation_from_body(body: str) -> str | None:
     """Extract the installation number from the plain or HTML body text.
 
@@ -125,6 +152,7 @@ def parse_mail_message(msg: MailMessage) -> EnelBill | None:
 
     pdf_name, pdf_bytes = pdf
     barcode = extract_barcode_from_body(body)
+    amount = extract_amount_from_body(body)
     return EnelBill(
         installation=installation,
         subject=msg.subject,
@@ -132,4 +160,5 @@ def parse_mail_message(msg: MailMessage) -> EnelBill | None:
         pdf_name=pdf_name,
         pdf_bytes=pdf_bytes,
         barcode=barcode,
+        amount=amount,
     )

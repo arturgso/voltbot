@@ -36,6 +36,7 @@ export interface PreviewBill {
   bill_date: string;
   pdf_name: string;
   barcode: string | null;
+  amount: string | null;
 }
 
 export interface PreviewItem {
