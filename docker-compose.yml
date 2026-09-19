@@ -79,6 +79,7 @@ services:
       STATE_PATH: /app/state/state.json
       EVOLUTION_API_URL: http://evolution-api:8080
       EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-Vega}
+      POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-3600}
     volumes:
       - ./config.yaml:/app/config.yaml:ro
       - enel_downloads:/app/downloads

@@ -17,12 +17,22 @@ cp config.example.yaml config.yaml
 ```bash
 docker compose up -d evolution-api
 # parear a instância via QR code e depois rodar o app:
-docker compose --profile app run --rm enel-auto --date 2026-09-13
+# loop contínuo (padrão: 1 ciclo a cada 1h)
+docker compose --profile app run --rm enel-auto
+# rodada única
+docker compose --profile app run --rm enel-auto --once
+# dia específico + rodada única
+docker compose --profile app run --rm enel-auto --date 2026-09-13 --once
 ```
+
+O intervalo sai de `POLL_INTERVAL_SECONDS` no `.env` (padrão 3600).
 
 ## Local
 
 ```bash
 uv sync
-uv run enel-auto --date 2026-09-13
+# loop contínuo (usa o dia atual a cada ciclo)
+uv run enel-auto
+# rodada única
+uv run enel-auto --once
 ```

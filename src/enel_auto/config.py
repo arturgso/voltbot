@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Any
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,8 +19,10 @@ class Settings(BaseSettings):
     evolution_api_url: str = "http://127.0.0.1:8080"
     evolution_api_key: str = ""
     evolution_instance: str = "Vega"
+    poll_interval_seconds: int = 3600
 
     @field_validator(
+        "imap_host",
         "imap_user",
         "imap_pass",
         "contacts_path",
@@ -30,8 +33,8 @@ class Settings(BaseSettings):
         "evolution_instance",
     )
     @classmethod
-    def _strip(cls, v: str) -> str:
-        return v.strip()
+    def _strip(cls, v: Any) -> Any:
+        return v.strip() if isinstance(v, str) else v
 
 
 @lru_cache
