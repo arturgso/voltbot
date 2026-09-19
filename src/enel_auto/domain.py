@@ -23,6 +23,7 @@ class WhatsAppContact:
     installation: str
     phone: str
     name: str | None = None
+    installation_label: str | None = None
 
 
 @dataclass(frozen=True)
