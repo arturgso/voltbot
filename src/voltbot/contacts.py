@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from enel_auto.config import get_settings
-from enel_auto.domain import WhatsAppContact
+from voltbot.config import get_settings
+from voltbot.domain import WhatsAppContact
 
 
 def normalize_installation_key(installation: str) -> str:
@@ -15,7 +15,7 @@ def load_contacts_for_installation(installation: str) -> list[WhatsAppContact]:
     It keeps the contact lookup isolated in its own module and creates no
     Evolution API or WhatsApp side effect.
     """
-    from enel_auto.db import Database, seed_from_settings
+    from voltbot.db import Database, seed_from_settings
 
     settings = get_settings()
     db = Database(settings.db_path)

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from enel_auto.config import get_settings
-from enel_auto.domain import EnelBill
+from voltbot.config import get_settings
+from voltbot.domain import EnelBill
 
 
 def save_pdf(bill: EnelBill, downloads_dir: str | Path | None = None) -> str:

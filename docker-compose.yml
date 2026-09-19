@@ -1,7 +1,7 @@
 services:
   evolution-api:
     image: evoapicloud/evolution-api:v2.3.7
-    container_name: enel_evolution_api
+    container_name: volt_evolution_api
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:8080"
@@ -37,11 +37,11 @@ services:
       redis:
         condition: service_started
     networks:
-      - enel_auto
+      - voltbot
 
   postgres:
     image: postgres:15-alpine
-    container_name: enel_evolution_postgres
+    container_name: volt_evolution_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-evolution}
@@ -55,20 +55,20 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - enel_auto
+      - voltbot
 
   redis:
     image: redis:7-alpine
-    container_name: enel_evolution_redis
+    container_name: volt_evolution_redis
     restart: unless-stopped
     volumes:
       - evolution_redis:/data
     networks:
-      - enel_auto
+      - voltbot
 
-  enel-auto:
+  voltbot:
     build: .
-    container_name: enel_auto_app
+    container_name: voltbot_app
     profiles:
       - app
     env_file:
@@ -76,7 +76,7 @@ services:
     environment:
       DOWNLOADS_DIR: /app/downloads
       STATE_PATH: /app/state/state.json
-      DB_PATH: /app/data/enel_auto.db
+      DB_PATH: /app/data/voltbot.db
       EVOLUTION_API_URL: http://evolution-api:8080
       EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-Vega}
       POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-3600}
@@ -88,13 +88,13 @@ services:
       evolution-api:
         condition: service_started
     networks:
-      - enel_auto
+      - voltbot
 
-  enel-auto-web:
+  voltbot-web:
     build: .
-    container_name: enel_auto_web
+    container_name: voltbot_web
     restart: unless-stopped
-    entrypoint: ["enel-auto-web"]
+    entrypoint: ["voltbot-web"]
     command: ["--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "127.0.0.1:8000:8000"
@@ -103,7 +103,7 @@ services:
     environment:
       DOWNLOADS_DIR: /app/downloads
       STATE_PATH: /app/state/state.json
-      DB_PATH: /app/data/enel_auto.db
+      DB_PATH: /app/data/voltbot.db
       EVOLUTION_API_URL: http://evolution-api:8080
       EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-Vega}
     volumes:
@@ -114,7 +114,7 @@ services:
       evolution-api:
         condition: service_started
     networks:
-      - enel_auto
+      - voltbot
 
 volumes:
   evolution_instances:
@@ -125,4 +125,4 @@ volumes:
   enel_data:
 
 networks:
-  enel_auto:
+  voltbot:

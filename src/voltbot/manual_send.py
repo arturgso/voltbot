@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from enel_auto.evolution import EvolutionClient
+from voltbot.evolution import EvolutionClient
 
 
 def parse_args() -> argparse.Namespace:
@@ -11,7 +11,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("numbers", nargs="+", help="Numeros destino, com ou sem prefixo 55.")
     parser.add_argument("--text", help="Texto de teste para enviar antes do PDF.")
     parser.add_argument("--pdf", type=Path, help="Arquivo PDF para enviar como documento.")
-    parser.add_argument("--caption", default="Teste de envio Enel Auto", help="Legenda do PDF.")
+    parser.add_argument("--caption", default="Teste de envio VoltBot", help="Legenda do PDF.")
     return parser.parse_args()
 
 

@@ -7,18 +7,18 @@ from datetime import date, datetime
 
 from imap_tools import MailMessage
 
-from enel_auto.config import get_settings
-from enel_auto.contacts import load_contacts_for_installation
-from enel_auto.domain import EnelBill, PendingDelivery
-from enel_auto.evolution import (
+from voltbot.config import get_settings
+from voltbot.contacts import load_contacts_for_installation
+from voltbot.domain import EnelBill, PendingDelivery
+from voltbot.evolution import (
     EvolutionError,
     build_delivery_message,
     send_pending_deliveries,
 )
-from enel_auto.imap_client import find_day_emails, find_range_emails
-from enel_auto.parsers import parse_mail_message
-from enel_auto.state import already_processed
-from enel_auto.storage import save_pdf
+from voltbot.imap_client import find_day_emails, find_range_emails
+from voltbot.parsers import parse_mail_message
+from voltbot.state import already_processed
+from voltbot.storage import save_pdf
 
 DEFAULT_POLL_INTERVAL_SECONDS = 3600
 
@@ -146,7 +146,7 @@ def build_preview(
     Mirrors the grouped sending: one text per contact (plus intro when due)
     and one PDF per bill.
     """
-    from enel_auto.evolution import (
+    from voltbot.evolution import (
         build_combined_message,
         build_delivery_message,
         group_deliveries_by_contact,

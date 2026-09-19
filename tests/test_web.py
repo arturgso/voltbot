@@ -3,8 +3,8 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-import enel_auto.web as web_module
-from enel_auto.web import create_app
+import voltbot.web as web_module
+from voltbot.web import create_app
 
 
 @pytest.fixture()
@@ -141,4 +141,4 @@ def test_run_executes_in_background_with_dry_run(client, monkeypatch):
 def test_index_serves_frontend(client):
     res = client.get("/")
     assert res.status_code == 200
-    assert "Enel Auto" in res.text
+    assert "VoltBot" in res.text

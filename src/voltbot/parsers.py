@@ -5,7 +5,7 @@ from datetime import date
 
 from imap_tools import MailMessage
 
-from enel_auto.domain import EnelBill
+from voltbot.domain import EnelBill
 
 INSTALLATION_REGEX = re.compile(r"INSTALA[ÇC][ÃA]O/UC[:\s]*(\d+)", re.IGNORECASE)
 

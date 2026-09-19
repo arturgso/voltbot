@@ -13,4 +13,4 @@ COPY src ./src
 
 RUN uv sync --locked --no-dev && mkdir -p /app/downloads /app/state
 
-ENTRYPOINT ["enel-auto"]
+ENTRYPOINT ["voltbot"]

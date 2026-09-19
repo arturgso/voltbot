@@ -4,8 +4,8 @@ from urllib.request import Request
 
 from datetime import date
 
-from enel_auto.domain import EnelBill, PendingDelivery, WhatsAppContact
-from enel_auto.evolution import (
+from voltbot.domain import EnelBill, PendingDelivery, WhatsAppContact
+from voltbot.evolution import (
     EvolutionClient,
     EvolutionSendResult,
     build_combined_message,
@@ -15,7 +15,7 @@ from enel_auto.evolution import (
     normalize_phone,
     send_pending_deliveries,
 )
-from enel_auto.state import is_intro_sent, mark_intro_sent
+from voltbot.state import is_intro_sent, mark_intro_sent
 
 
 class FakeResponse:
@@ -57,7 +57,8 @@ def test_build_delivery_message_has_bill_context():
 
     message = build_delivery_message(delivery, "Artur")
 
-    assert "Ola, Artur!" in message
+    assert "Olá, Artur!" in message
+    assert "VoltBot" in message
     assert "Instalacao: 0200420281" in message
     assert "Data: 18/09/2026" in message
     assert "Arquivo: conta.pdf" in message
@@ -91,11 +92,12 @@ def test_build_intro_message_has_friendly_text_and_credits():
     assert "Artur" in msg_with_name
     assert "Enel" in msg_with_name
     assert "WhatsApp" in msg_with_name
+    assert "VoltBot" in msg_with_name
     assert "API" not in msg_with_name
     assert "Python" not in msg_with_name
 
     msg_without_name = build_intro_message(None)
-    assert "Olá! Tudo bem?" in msg_without_name
+    assert "Olá! Aqui é o VoltBot" in msg_without_name
     assert "Bia" in msg_without_name
     assert "Artur" in msg_without_name
 
@@ -145,7 +147,7 @@ def test_send_pending_deliveries_sends_intro_on_first_contact(
 
     client = FakeClient()
     monkeypatch.setattr(
-        "enel_auto.evolution.mark_processed",
+        "voltbot.evolution.mark_processed",
         lambda installation, pdf_name, path=None: marked.append((installation, pdf_name)),
     )
 
@@ -203,7 +205,7 @@ def test_send_pending_deliveries_skips_intro_when_already_sent(
 
     client = FakeClient()
     monkeypatch.setattr(
-        "enel_auto.evolution.mark_processed",
+        "voltbot.evolution.mark_processed",
         lambda installation, pdf_name, path=None: marked.append((installation, pdf_name)),
     )
 
@@ -276,7 +278,8 @@ def test_build_combined_message_lists_all_installations_with_labels():
         [(deliveries[0], "Casa"), (deliveries[1], "Sítio")], "Bia"
     )
 
-    assert "Ola, Bia!" in message
+    assert "Olá, Bia!" in message
+    assert "VoltBot" in message
     assert "2 contas" in message
     assert "Instalacao: 0200420281 (Casa)" in message
     assert "Instalacao: 0300530392 (Sítio)" in message
@@ -347,7 +350,7 @@ def test_send_shared_contact_gets_single_plural_text_and_both_pdfs(
 
     client = FakeClient()
     monkeypatch.setattr(
-        "enel_auto.evolution.mark_processed",
+        "voltbot.evolution.mark_processed",
         lambda installation, pdf_name, path=None: marked.append((installation, pdf_name)),
     )
 

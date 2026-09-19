@@ -1,4 +1,4 @@
-from enel_auto.db import Database, seed_from_settings
+from voltbot.db import Database, seed_from_settings
 from types import SimpleNamespace
 
 

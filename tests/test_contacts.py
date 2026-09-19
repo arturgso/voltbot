@@ -2,9 +2,9 @@ from types import SimpleNamespace
 
 import pytest
 
-import enel_auto.contacts as contacts_module
-from enel_auto.contacts import load_contacts_for_installation, normalize_installation_key
-from enel_auto.db import Database
+import voltbot.contacts as contacts_module
+from voltbot.contacts import load_contacts_for_installation, normalize_installation_key
+from voltbot.db import Database
 
 
 @pytest.fixture()

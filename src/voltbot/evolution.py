@@ -9,9 +9,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
-from enel_auto.config import get_settings
-from enel_auto.domain import PendingDelivery, normalize_phone
-from enel_auto.state import is_intro_sent, mark_intro_sent, mark_processed
+from voltbot.config import get_settings
+from voltbot.domain import PendingDelivery, normalize_phone
+from voltbot.state import is_intro_sent, mark_intro_sent, mark_processed
 
 
 class UrlOpen(Protocol):
@@ -129,13 +129,13 @@ def format_installation_line(
 
 
 def build_intro_message(contact_name: str | None = None) -> str:
-    greeting = f"Olá, {contact_name}!" if contact_name else "Olá!"
+    greeting = f"Olá, {contact_name}! Aqui é o VoltBot ⚡" if contact_name else "Olá! Aqui é o VoltBot ⚡"
     return (
         f"{greeting} Tudo bem? 😊\n\n"
-        "Passando para avisar que agora você vai receber a conta de luz da Enel "
-        "direto aqui pelo WhatsApp assim que ela chegar, para facilitar o seu dia a dia "
-        "e você não precisar se preocupar!\n\n"
-        "Essa ideia foi da Bia e quem fez acontecer foi o Artur.\n\n"
+        "Sou eu quem vai te mandar a conta de luz da Enel aqui no WhatsApp "
+        "assim que ela chegar, pra facilitar o seu dia a dia e você não "
+        "precisar se preocupar!\n\n"
+        "Fui criado pelo Artur com a ideia da Bia.\n\n"
         "Já estou te enviando a fatura deste mês logo abaixo! 👇"
     )
 
@@ -145,7 +145,7 @@ def build_delivery_message(
     contact_name: str | None = None,
     installation_label: str | None = None,
 ) -> str:
-    greeting = f"Ola, {contact_name}!" if contact_name else "Ola!"
+    greeting = f"Olá, {contact_name}! Aqui é o VoltBot ⚡" if contact_name else "Olá! Aqui é o VoltBot ⚡"
     bill = delivery.bill
     if installation_label is None:
         for contact in delivery.contacts:
@@ -154,9 +154,9 @@ def build_delivery_message(
                 break
     return (
         f"{greeting}\n"
-        "Segue a conta Enel recebida por email.\n\n"
+        "Acabei de receber a sua conta de luz da Enel por e-mail e já estou te enviando 👇\n\n"
         f"{format_installation_line(bill.installation, installation_label, bill.date, bill.pdf_name)}\n\n"
-        "Mensagem automatica do Enel Auto."
+        "Qualquer dúvida é só me chamar! ⚡"
     )
 
 
@@ -168,7 +168,7 @@ def build_combined_message(
 
     ``items`` holds (delivery, installation_label) pairs.
     """
-    greeting = f"Ola, {contact_name}!" if contact_name else "Ola!"
+    greeting = f"Olá, {contact_name}! Aqui é o VoltBot ⚡" if contact_name else "Olá! Aqui é o VoltBot ⚡"
     lines = [
         format_installation_line(
             delivery.bill.installation, label, delivery.bill.date, delivery.bill.pdf_name
@@ -178,9 +178,9 @@ def build_combined_message(
     listing = "\n".join(f"- {line}" for line in lines)
     return (
         f"{greeting}\n"
-        f"Seguem as {len(items)} contas Enel recebidas por email.\n\n"
+        f"Acabei de receber {len(items)} contas de luz da Enel no e-mail e já estou te enviando 👇\n\n"
         f"{listing}\n\n"
-        "Mensagem automatica do Enel Auto."
+        "Qualquer dúvida é só me chamar! ⚡"
     )
 
 

@@ -5,8 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from enel_auto.config import get_settings
-from enel_auto.domain import normalize_phone
+from voltbot.config import get_settings
+from voltbot.domain import normalize_phone
 
 
 def state_path_for_key(path: str | Path | None = None) -> Path:

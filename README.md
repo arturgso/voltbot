@@ -1,6 +1,7 @@
-# enel-auto
+# VoltBot ⚡
 
-Busca faturas da Enel por e-mail (IMAP) e envia via Evolution API (WhatsApp).
+Busca faturas da Enel por e-mail (IMAP) e envia via Evolution API (WhatsApp),
+falando como o VoltBot.
 
 ## Configuração
 
@@ -10,12 +11,12 @@ cp .env.example .env
 ```
 
 Instalações, contatos e contas de e-mail de origem são gerenciados pela
-interface web (SQLite em `DB_PATH`, padrão `data/enel_auto.db`).
+interface web (SQLite em `DB_PATH`, padrão `data/voltbot.db`).
 
 ## Interface web
 
 ```bash
-uv run enel-auto-web
+uv run voltbot-web
 # abre http://127.0.0.1:8000
 ```
 
@@ -26,10 +27,10 @@ instalações e contatos. Sem autenticação — uso local (bind em `WEB_HOST`).
 ## Evolution API (Docker)
 
 ```bash
-docker compose up -d evolution-api enel-auto-web
+docker compose up -d evolution-api voltbot-web
 # parear a instância via QR code; a interface sobe em http://127.0.0.1:8000
 # o worker CLI em loop continua manual:
-docker compose --profile app run --rm enel-auto --once
+docker compose --profile app run --rm voltbot --once
 ```
 
 ## Local
@@ -37,7 +38,7 @@ docker compose --profile app run --rm enel-auto --once
 ```bash
 uv sync
 # loop contínuo (usa o dia atual a cada ciclo)
-uv run enel-auto
+uv run voltbot
 # rodada única
-uv run enel-auto --once
+uv run voltbot --once
 ```

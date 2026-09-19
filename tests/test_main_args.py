@@ -1,8 +1,8 @@
 from datetime import date
 from types import SimpleNamespace
 
-import enel_auto.main as main_module
-from enel_auto.main import (
+import voltbot.main as main_module
+from voltbot.main import (
     month_bounds,
     parse_args,
     resolve_interval_seconds,

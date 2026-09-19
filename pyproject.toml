@@ -1,5 +1,5 @@
 [project]
-name = "enel-auto"
+name = "voltbot"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -18,9 +18,9 @@ dependencies = [
 ]
 
 [project.scripts]
-enel-auto = "enel_auto.main:main"
-enel-auto-send-test = "enel_auto.manual_send:main"
-enel-auto-web = "enel_auto.web:serve"
+voltbot = "voltbot.main:main"
+voltbot-send-test = "voltbot.manual_send:main"
+voltbot-web = "voltbot.web:serve"
 
 [build-system]
 requires = ["uv_build>=0.12.13,<0.13.0"]

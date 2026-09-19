@@ -15,10 +15,10 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from enel_auto.config import get_settings
-from enel_auto.db import Database, seed_from_settings
-from enel_auto.evolution import EvolutionError
-from enel_auto.main import parse_month, run_cycle
+from voltbot.config import get_settings
+from voltbot.db import Database, seed_from_settings
+from voltbot.evolution import EvolutionError
+from voltbot.main import parse_month, run_cycle
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -107,7 +107,7 @@ def _execute_run(db_path: str, run_id: int, payload: dict) -> None:
 
 
 def create_app(db_path: str | None = None) -> FastAPI:
-    app = FastAPI(title="Enel Auto")
+    app = FastAPI(title="VoltBot")
     app.state.db_path = db_path or get_settings().db_path
 
     # Seed at startup so the UI already shows migrated data.
@@ -324,7 +324,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
 
 
 def serve() -> None:
-    parser = argparse.ArgumentParser(description="Serve a interface web do Enel Auto.")
+    parser = argparse.ArgumentParser(description="Serve a interface web do VoltBot.")
     parser.add_argument("--host", default=None, help="Host (padrão: WEB_HOST ou 127.0.0.1).")
     parser.add_argument("--port", type=int, default=None, help="Porta (padrão: WEB_PORT ou 8000).")
     cli = parser.parse_args()

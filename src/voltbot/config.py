@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     evolution_api_key: str = ""
     evolution_instance: str = "Vega"
     poll_interval_seconds: int = 3600
-    db_path: str = "data/enel_auto.db"
+    db_path: str = "data/voltbot.db"
     web_host: str = "127.0.0.1"
     web_port: int = 8000
 

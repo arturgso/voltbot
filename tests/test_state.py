@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from enel_auto.state import (
+from voltbot.state import (
     already_processed,
     is_intro_sent,
     load_state,

@@ -4,8 +4,8 @@ from datetime import date
 
 from imap_tools import AND, MailBox, MailMessage
 
-from enel_auto.config import get_settings
-from enel_auto.domain import SUBJECT_FILTER
+from voltbot.config import get_settings
+from voltbot.domain import SUBJECT_FILTER
 
 
 def _fetch_from_account(
@@ -22,7 +22,7 @@ def _iter_account_credentials() -> list[tuple[str, str, str, str]]:
     Prefers the SQLite accounts table (seeded from settings on first use) so
     new accounts added via UI are picked up without restart.
     """
-    from enel_auto.db import Database, seed_from_settings
+    from voltbot.db import Database, seed_from_settings
 
     settings = get_settings()
     try:
