@@ -271,3 +271,37 @@ def send_pending_deliveries(
             mark_processed(delivery.bill.installation, delivery.bill.pdf_name, path=state_path)
 
     return results
+
+
+def send_barcode_only_deliveries(
+    deliveries: list[PendingDelivery],
+    client: EvolutionClient | None = None,
+    state_path: str | Path | None = None,
+) -> list[EvolutionSendResult]:
+    """Send only the standalone barcode message per bill.
+
+    Catch-up for bills already delivered before the barcode feature:
+    no intro, no info text and no PDF — one digits-only message per bill.
+    Identical codes for the same number are deduplicated.
+    """
+    deliveries_with_barcodes = [
+        delivery
+        for delivery in deliveries
+        if delivery.contacts and build_barcode_message(delivery.bill.barcode)
+    ]
+    if not deliveries_with_barcodes:
+        return []
+
+    resolved_client = client or EvolutionClient()
+    results: list[EvolutionSendResult] = []
+
+    for group in group_deliveries_by_contact(deliveries_with_barcodes, state_path=state_path):
+        seen: set[str] = set()
+        for delivery, _label in group.items:
+            code = build_barcode_message(delivery.bill.barcode)
+            if not code or code in seen:
+                continue
+            seen.add(code)
+            results.append(resolved_client.send_text(group.phone, code))
+
+    return results

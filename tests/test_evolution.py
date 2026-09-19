@@ -14,6 +14,7 @@ from voltbot.evolution import (
     build_intro_message,
     group_deliveries_by_contact,
     normalize_phone,
+    send_barcode_only_deliveries,
     send_pending_deliveries,
 )
 from voltbot.state import is_intro_sent, mark_intro_sent
@@ -449,3 +450,84 @@ def test_send_shared_contact_gets_single_plural_text_and_both_pdfs(
     assert is_intro_sent("5511934720814", path=state_file)
     assert marked == [("0200420281", "a.pdf"), ("0300530392", "b.pdf")]
     assert len(results) == 4
+
+
+def _bill_with_barcode(
+    installation: str, pdf_name: str, pdf_path: str, barcode: str | None
+) -> EnelBill:
+    return EnelBill(
+        installation=installation,
+        subject="Enel - Conta por email",
+        date=date(2026, 9, 18),
+        pdf_name=pdf_name,
+        pdf_bytes=b"pdf",
+        pdf_path=pdf_path,
+        barcode=barcode,
+    )
+
+
+def test_send_barcode_only_deliveries_sends_digits_only_without_intro_or_pdf(
+    tmp_path: Path,
+):
+    state_file = tmp_path / "state.json"
+    code_a = "1" * 48
+    code_b = "2" * 48
+    contact = WhatsAppContact(
+        installation="0200420281", phone="11934720814", name="Bia"
+    )
+    deliveries = [
+        PendingDelivery(
+            bill=_bill_with_barcode("0200420281", "a.pdf", "x", code_a),
+            contacts=[contact],
+        ),
+        PendingDelivery(
+            bill=_bill_with_barcode("0200420281", "b.pdf", "x", code_a),
+            contacts=[contact],
+        ),
+        PendingDelivery(
+            bill=_bill_with_barcode("0300530392", "c.pdf", "x", code_b),
+            contacts=[contact],
+        ),
+        PendingDelivery(
+            bill=_bill_with_barcode("0400640403", "d.pdf", "x", None),
+            contacts=[contact],
+        ),
+    ]
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, str | None]] = []
+
+        def send_text(self, number: str, text: str) -> EvolutionSendResult:
+            self.calls.append(("text", number, text))
+            return EvolutionSendResult(number, "/text", 201, {})
+
+        def send_pdf(
+            self, number: str, pdf_path: str | Path, caption: str | None = None
+        ) -> EvolutionSendResult:
+            self.calls.append(("pdf", number, str(pdf_path)))
+            return EvolutionSendResult(number, "/pdf", 201, {})
+
+    client = FakeClient()
+
+    results = send_barcode_only_deliveries(deliveries, client, state_path=state_file)
+
+    # sem intro e sem pdf; codigo repetido sai uma vez; sem barras é ignorado
+    assert [call[0] for call in client.calls] == ["text", "text"]
+    assert client.calls[0][2] == code_a
+    assert client.calls[1][2] == code_b
+    assert not is_intro_sent("11934720814", path=state_file)
+    assert len(results) == 2
+
+
+def test_send_barcode_only_deliveries_without_barcodes_sends_nothing(tmp_path: Path):
+    state_file = tmp_path / "state.json"
+    contact = WhatsAppContact(
+        installation="0200420281", phone="11934720814", name="Bia"
+    )
+    deliveries = [
+        PendingDelivery(bill=_bill("0200420281", "a.pdf", "x"), contacts=[contact]),
+        PendingDelivery(bill=_bill("0300530392", "b.pdf", "x"), contacts=[]),
+    ]
+
+    assert send_barcode_only_deliveries(deliveries, None, state_path=state_file) == []

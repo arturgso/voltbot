@@ -72,6 +72,7 @@ export default function RunTab({
   const [date, setDate] = useState('');
   const [month, setMonth] = useState('atual');
   const [dryRun, setDryRun] = useState(false);
+  const [barcodeOnly, setBarcodeOnly] = useState(false);
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<RunDetail | null>(null);
@@ -138,7 +139,7 @@ export default function RunTab({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const body: Record<string, unknown> = { mode, dry_run: dryRun };
+    const body: Record<string, unknown> = { mode, dry_run: dryRun, barcode_only: barcodeOnly };
     if (mode === 'date') body.date = date;
     if (mode === 'month') body.month = month === 'atual' ? currentYearMonth() : month;
     setBusy(true);
@@ -260,6 +261,11 @@ export default function RunTab({
                   label="Modo dry-run (só prever, sem enviar)"
                   checked={dryRun}
                   onChange={(e) => setDryRun(e.target.checked)}
+                />
+                <Checkbox
+                  label="Somente código de barras (reenvio p/ quem já recebeu no período)"
+                  checked={barcodeOnly}
+                  onChange={(e) => setBarcodeOnly(e.target.checked)}
                 />
                 <Button type="submit" fullWidth loading={busy}>
                   EXECUTAR AUTOMAÇÃO

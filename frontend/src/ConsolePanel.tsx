@@ -143,9 +143,11 @@ export function PreviewPanel({ run }: { run: RunDetail | null }) {
               </Badge>
             )}
           </Group>
-          <Text size="xs" ff="monospace" style={{ whiteSpace: 'pre-wrap' }} mb="sm">
-            {item.text}
-          </Text>
+          {item.text ? (
+            <Text size="xs" ff="monospace" style={{ whiteSpace: 'pre-wrap' }} mb="sm">
+              {item.text}
+            </Text>
+          ) : null}
           {(item.barcode_messages || []).map((code, k) => (
             <Box
               key={`barcode-${k}`}
