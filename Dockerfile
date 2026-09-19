@@ -13,6 +13,4 @@ COPY src ./src
 
 RUN uv sync --locked --no-dev && mkdir -p /app/downloads /app/state
 
-COPY config.example.yaml ./
-
 ENTRYPOINT ["enel-auto"]

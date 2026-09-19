@@ -74,16 +74,42 @@ services:
     env_file:
       - .env
     environment:
-      CONTACTS_PATH: /app/config.yaml
       DOWNLOADS_DIR: /app/downloads
       STATE_PATH: /app/state/state.json
+      DB_PATH: /app/data/enel_auto.db
       EVOLUTION_API_URL: http://evolution-api:8080
       EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-Vega}
       POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-3600}
     volumes:
-      - ./config.yaml:/app/config.yaml:ro
       - enel_downloads:/app/downloads
       - enel_state:/app/state
+      - enel_data:/app/data
+    depends_on:
+      evolution-api:
+        condition: service_started
+    networks:
+      - enel_auto
+
+  enel-auto-web:
+    build: .
+    container_name: enel_auto_web
+    restart: unless-stopped
+    entrypoint: ["enel-auto-web"]
+    command: ["--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    environment:
+      DOWNLOADS_DIR: /app/downloads
+      STATE_PATH: /app/state/state.json
+      DB_PATH: /app/data/enel_auto.db
+      EVOLUTION_API_URL: http://evolution-api:8080
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-Vega}
+    volumes:
+      - enel_downloads:/app/downloads
+      - enel_state:/app/state
+      - enel_data:/app/data
     depends_on:
       evolution-api:
         condition: service_started
@@ -96,6 +122,7 @@ volumes:
   evolution_redis:
   enel_downloads:
   enel_state:
+  enel_data:
 
 networks:
   enel_auto:

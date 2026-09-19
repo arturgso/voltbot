@@ -6,26 +6,31 @@ Busca faturas da Enel por e-mail (IMAP) e envia via Evolution API (WhatsApp).
 
 ```bash
 cp .env.example .env
-cp config.example.yaml config.yaml
-# edite .env e config.yaml com os dados reais
+# edite o .env com os dados reais (IMAP + Evolution)
 ```
 
-`config.yaml` contém telefones reais e fica fora do git (ver `.gitignore`).
+Instalações, contatos e contas de e-mail de origem são gerenciados pela
+interface web (SQLite em `DB_PATH`, padrão `data/enel_auto.db`).
+
+## Interface web
+
+```bash
+uv run enel-auto-web
+# abre http://127.0.0.1:8000
+```
+
+A interface permite: acompanhar status e logs, executar on-demand (dia, data
+ou mês inteiro, com dry-run), cadastrar contas de e-mail de origem e gerenciar
+instalações e contatos. Sem autenticação — uso local (bind em `WEB_HOST`).
 
 ## Evolution API (Docker)
 
 ```bash
-docker compose up -d evolution-api
-# parear a instância via QR code e depois rodar o app:
-# loop contínuo (padrão: 1 ciclo a cada 1h)
-docker compose --profile app run --rm enel-auto
-# rodada única
+docker compose up -d evolution-api enel-auto-web
+# parear a instância via QR code; a interface sobe em http://127.0.0.1:8000
+# o worker CLI em loop continua manual:
 docker compose --profile app run --rm enel-auto --once
-# dia específico + rodada única
-docker compose --profile app run --rm enel-auto --date 2026-09-13 --once
 ```
-
-O intervalo sai de `POLL_INTERVAL_SECONDS` no `.env` (padrão 3600).
 
 ## Local
 

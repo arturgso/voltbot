@@ -11,9 +11,7 @@ wheels/
 
 .env
 
-# Contatos reais (dados sensíveis) — usar config.example.yaml como base
-config.yaml
-
 # Runtime-generated files
 downloads/
 state.json
+data/
