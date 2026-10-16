@@ -51,6 +51,7 @@ export interface PreviewItem {
 export interface Installation {
   code: string;
   label: string | null;
+  pdf_password: string | null;
   contacts: number;
 }
 
@@ -92,10 +93,10 @@ export const api = {
   deleteRun: (id: number) => request<null>(`/api/runs/${id}`, { method: 'DELETE' }),
 
   installations: () => request<Installation[]>('/api/installations'),
-  addInstallation: (code: string, label: string | null) =>
+  addInstallation: (code: string, label: string | null, pdfPassword: string | null) =>
     request<unknown>('/api/installations', {
       method: 'POST',
-      body: JSON.stringify({ code, label }),
+      body: JSON.stringify({ code, label, pdf_password: pdfPassword }),
     }),
   deleteInstallation: (code: string) =>
     request<null>(`/api/installations/${code}`, { method: 'DELETE' }),
@@ -152,7 +153,8 @@ export function kindLabel(run: { kind: string; params: Record<string, unknown> }
 }
 
 export function statusLabel(status: string): string {
-  if (status === 'done') return 'DONE';
-  if (status === 'error') return 'ERROR';
-  return 'RUNNING';
+  if (status === 'done') return 'Concluída';
+  if (status === 'error') return 'Falhou';
+  if (status === 'running') return 'Em andamento';
+  return status;
 }

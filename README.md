@@ -24,6 +24,22 @@ A interface permite: acompanhar status e logs, executar on-demand (dia, data
 ou mês inteiro, com dry-run), cadastrar contas de e-mail de origem e gerenciar
 instalações e contatos. Sem autenticação — uso local (bind em `WEB_HOST`).
 
+As abas no topo organizam execução e cadastros. Use **Adicionar** para abrir os
+formulários de cadastro; contatos também podem ser editados em um modal.
+Cada instalação pode ter uma **Senha para abrir o PDF**, informada ao adicionar
+ou editar a instalação. Quando cadastrada, ela acompanha os dados dessa instalação
+na mensagem da fatura e na prévia da simulação. O campo é opcional; deixe-o vazio
+ao editar para remover a senha. O modo de envio somente do código de barras
+continua enviando apenas os dígitos.
+Na execução, **Simular envio** mostra uma prévia por destinatário sem enviar
+mensagens (a consulta IMAP e o download de PDFs ainda podem ocorrer). As opções
+de reenvio de códigos de barras ficam em **Opções avançadas**. Selecione um item
+do histórico para ver seu resultado e expandir os logs.
+
+O intervalo exibido é a configuração do worker; a interface web não
+inicia o loop automático. **Limpar recentes** remove apenas as execuções exibidas
+e seus logs, preservando o controle das faturas já enviadas.
+
 ## Frontend (desenvolvimento)
 
 O frontend é Vite + React + Mantine em `frontend/`; o build vai para
