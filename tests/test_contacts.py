@@ -18,6 +18,7 @@ def tmp_settings(tmp_path, monkeypatch):
 def test_load_contacts_from_db_with_labels(tmp_settings):
     db = Database(tmp_settings)
     db.upsert_installation("0200420281", "Casa")
+    db.set_installation_pdf_password("0200420281", "001234")
     db.add_contact("0200420281", "551199999999", "Bia")
     db.add_contact("0200420281", "551188888888")
     db.close()
@@ -29,6 +30,7 @@ def test_load_contacts_from_db_with_labels(tmp_settings):
     assert by_phone["551199999999"].name == "Bia"
     assert by_phone["551199999999"].installation_label == "Casa"
     assert by_phone["551188888888"].name is None
+    assert all(contact.pdf_password == "001234" for contact in contacts)
 
 
 def test_load_contacts_normalizes_installation_key(tmp_settings):

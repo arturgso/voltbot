@@ -20,6 +20,27 @@ from voltbot.evolution import (
 from voltbot.state import is_intro_sent, mark_intro_sent
 
 
+def test_pdf_password_in_single_combined_and_preview_messages(tmp_path):
+    from voltbot.main import build_preview
+
+    deliveries = []
+    for code, password in [("0001", "001234"), ("0002", "senha-567"), ("0003", None)]:
+        bill = EnelBill(code, "Fatura", date(2026, 10, 1), f"{code}.pdf", b"pdf")
+        contact = WhatsAppContact(code, "5511999999999", "Teste", code, password)
+        deliveries.append(PendingDelivery(bill, [contact]))
+
+    assert "Senha para abrir o PDF: 001234" in build_delivery_message(deliveries[0])
+    assert "Senha para abrir o PDF" not in build_delivery_message(deliveries[2])
+    combined = build_combined_message([(delivery, delivery.bill.installation) for delivery in deliveries])
+    assert "Instalacao: 0001 (0001) | Data: 01/10/2026\n  Senha para abrir o PDF: 001234" in combined
+    assert "Instalacao: 0002 (0002) | Data: 01/10/2026\n  Senha para abrir o PDF: senha-567" in combined
+    assert combined.count("Senha para abrir o PDF") == 2
+    preview = build_preview(deliveries, state_path=tmp_path / "state.json")
+    assert preview[0]["text"].count("Senha para abrir o PDF") == 2
+    barcode_preview = build_preview(deliveries, state_path=tmp_path / "state.json", barcode_only=True)
+    assert barcode_preview[0]["text"] == ""
+
+
 class FakeResponse:
     status = 200
 

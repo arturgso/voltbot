@@ -22,6 +22,21 @@ def test_health_returns_ok(client):
         assert res.json() == {"status": "ok"}
 
 
+def test_installation_pdf_password_create_update_preserve_and_clear(client):
+    payload = {"code": "0000123", "label": "Casa", "pdf_password": "001234"}
+    assert client.post("/api/installations", json=payload).json()["pdf_password"] == "001234"
+    client.post("/api/contacts", json={"installation": "0000123", "phone": "5511999999999"})
+    client.post("/api/installations", json={"code": "0000123", "label": "Casa nova"})
+    assert client.get("/api/installations").json()[0]["pdf_password"] == "001234"
+    payload["pdf_password"] = "000567"
+    client.post("/api/installations", json=payload)
+    assert client.get("/api/installations").json()[0]["pdf_password"] == "000567"
+    for value in (None, ""):
+        client.post("/api/installations", json={**payload, "pdf_password": value})
+        assert client.get("/api/installations").json()[0]["pdf_password"] is None
+    assert len(client.get("/api/contacts").json()) == 1
+
+
 def test_status_shape(client):
     data = client.get("/api/status").json()
     assert set(data) >= {

@@ -1,5 +1,23 @@
 from voltbot.db import Database, seed_from_settings
 from types import SimpleNamespace
+import sqlite3
+
+
+def test_existing_database_migrates_pdf_password_without_losing_data(tmp_path):
+    path = tmp_path / "legacy.db"
+    with sqlite3.connect(path) as connection:
+        connection.execute("CREATE TABLE installations (code TEXT PRIMARY KEY, label TEXT, created_at TEXT NOT NULL)")
+        connection.execute("INSERT INTO installations VALUES ('0000123', 'Casa', '2026-01-01')")
+    db = Database(path)
+    assert db.list_installations() == [{"code": "0000123", "label": "Casa", "pdf_password": None, "contacts": 0}]
+    db.set_installation_pdf_password("0000123", "001234")
+    db.add_contact("0000123", "5511999999999", "Teste")
+    assert db.list_installations()[0]["pdf_password"] == "001234"
+    db.close()
+    db = Database(path)
+    assert db.list_installations()[0]["pdf_password"] == "001234"
+    assert len(db.list_contacts()) == 1
+    db.close()
 
 
 def test_contacts_crud(tmp_path):

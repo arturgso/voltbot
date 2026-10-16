@@ -10,6 +10,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS installations (
     code TEXT PRIMARY KEY,
     label TEXT,
+    pdf_password TEXT,
     created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS contacts (
@@ -78,6 +79,9 @@ class Database:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.executescript(SCHEMA)
+        columns = {row["name"] for row in self._conn.execute("PRAGMA table_info(installations)")}
+        if "pdf_password" not in columns:
+            self._conn.execute("ALTER TABLE installations ADD COLUMN pdf_password TEXT")
         self._conn.commit()
 
     def close(self) -> None:
@@ -98,9 +102,16 @@ class Database:
         self._conn.execute("DELETE FROM installations WHERE code = ?", (code,))
         self._conn.commit()
 
+    def set_installation_pdf_password(self, code: str, password: str | None) -> None:
+        self._conn.execute(
+            "UPDATE installations SET pdf_password = ? WHERE code = ?",
+            (password or None, code),
+        )
+        self._conn.commit()
+
     def list_installations(self) -> list[dict[str, Any]]:
         rows = self._conn.execute(
-            "SELECT code, label FROM installations ORDER BY code"
+            "SELECT code, label, pdf_password FROM installations ORDER BY code"
         ).fetchall()
         result = []
         for row in rows:
@@ -109,7 +120,7 @@ class Database:
                 (row["code"],),
             ).fetchone()["n"]
             result.append(
-                {"code": row["code"], "label": row["label"], "contacts": count}
+                {"code": row["code"], "label": row["label"], "pdf_password": row["pdf_password"], "contacts": count}
             )
         return result
 
@@ -164,7 +175,7 @@ class Database:
     def list_contacts(self, installation: str | None = None) -> list[dict[str, Any]]:
         base = (
             "SELECT c.id, c.installation, c.phone, c.name, "
-            "i.label AS installation_label FROM contacts c "
+            "i.label AS installation_label, i.pdf_password FROM contacts c "
             "LEFT JOIN installations i ON i.code = c.installation"
         )
         if installation:

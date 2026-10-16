@@ -30,6 +30,7 @@ def load_contacts_for_installation(installation: str) -> list[WhatsAppContact]:
             phone=row["phone"],
             name=row["name"],
             installation_label=(row.get("installation_label") or None),
+            pdf_password=row.get("pdf_password") or None,
         )
         for row in rows
     ]

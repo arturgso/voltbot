@@ -146,6 +146,14 @@ def build_intro_message(contact_name: str | None = None) -> str:
     )
 
 
+def delivery_pdf_password(delivery: PendingDelivery) -> str | None:
+    return next(
+        (contact.pdf_password for contact in delivery.contacts
+         if contact.installation == delivery.bill.installation and contact.pdf_password),
+        None,
+    )
+
+
 def build_delivery_message(
     delivery: PendingDelivery,
     contact_name: str | None = None,
@@ -163,6 +171,9 @@ def build_delivery_message(
         "Acabei de receber a sua conta de luz da Enel por e-mail e já estou te enviando 👇\n\n"
         f"{format_installation_line(bill.installation, installation_label, bill.date, bill.amount)}"
     )
+    password = delivery_pdf_password(delivery)
+    if password:
+        text += f"\nSenha para abrir o PDF: {password}"
     return text
 
 
@@ -179,6 +190,7 @@ def build_combined_message(
         format_installation_line(
             delivery.bill.installation, label, delivery.bill.date, delivery.bill.amount
         )
+        + (f"\n  Senha para abrir o PDF: {password}" if (password := delivery_pdf_password(delivery)) else "")
         for delivery, label in items
     ]
     listing = "\n".join(f"- {line}" for line in lines)

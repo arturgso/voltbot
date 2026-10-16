@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
@@ -26,6 +26,7 @@ class WhatsAppContact:
     phone: str
     name: str | None = None
     installation_label: str | None = None
+    pdf_password: str | None = field(default=None, repr=False)
 
 
 @dataclass(frozen=True)

@@ -40,6 +40,7 @@ class RunRequest(BaseModel):
 class InstallationCreate(BaseModel):
     code: str
     label: str | None = None
+    pdf_password: str | None = None
 
 
 class ContactCreate(BaseModel):
@@ -177,7 +178,9 @@ def create_app(db_path: str | None = None) -> FastAPI:
         database = _db(app.state.db_path)
         try:
             database.upsert_installation(code, (payload.label or "").strip() or None)
-            return {"code": code, "label": payload.label}
+            if "pdf_password" in payload.model_fields_set:
+                database.set_installation_pdf_password(code, payload.pdf_password)
+            return next(row for row in database.list_installations() if row["code"] == code)
         finally:
             database.close()
 
