@@ -201,3 +201,52 @@ def test_index_serves_frontend(client):
     res = client.get("/")
     assert res.status_code == 200
     assert "VoltBot" in res.text
+
+
+def test_email_failure_has_actionable_log_without_traceback(client, monkeypatch):
+    from voltbot.imap_client import EmailAccountError
+
+    def fail(*args, **kwargs):
+        print('Consultando conta de e-mail “Principal”...')
+        raise EmailAccountError('Login recusado na conta Principal. Confira a senha em E-mails.')
+
+    monkeypatch.setattr(web_module, 'run_cycle', fail)
+    response = client.post('/api/runs', json={'mode': 'today', 'dry_run': True})
+    run_id = response.json()['id']
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        run = client.get(f'/api/runs/{run_id}').json()
+        if run['status'] != 'running':
+            break
+        time.sleep(0.1)
+    assert run['status'] == 'error'
+    logs = '\n'.join(log['message'] for log in run['logs'])
+    assert 'Simulação iniciada' in logs
+    assert 'Nenhuma mensagem será enviada' in logs
+    assert 'Consultando conta' in logs
+    assert 'Login recusado' in logs
+    assert 'Traceback' not in logs
+    assert 'Erro inesperado' not in logs
+
+
+def test_manual_run_preserves_next_schedule(client, monkeypatch):
+    monkeypatch.setattr(web_module, 'run_cycle', lambda *args, **kwargs: {})
+    before = client.get('/api/status').json()['schedule']
+    assert before['active'] is True
+    client.post('/api/runs', json={'mode': 'today', 'dry_run': True})
+    after = client.get('/api/status').json()['schedule']
+    assert after['next_run_at'] == before['next_run_at']
+
+
+def test_scheduled_run_uses_date_range_and_sends(tmp_path, monkeypatch):
+    from voltbot.db import Database
+    calls = []
+    monkeypatch.setattr(web_module, 'run_cycle', lambda **kwargs: calls.append(kwargs) or {})
+    db = Database(tmp_path / 'scheduled.db')
+    params = {'mode': 'week', 'start': '2026-10-30', 'end': '2026-11-07', 'scheduled': True, 'dry_run': False}
+    run_id = db.create_run('week', params, False)
+    web_module._execute_run(str(db.path), run_id, params)
+    from datetime import date
+    assert calls == [{'date_range': (date(2026, 10, 30), date(2026, 11, 7))}]
+    assert db.get_run(run_id)['status'] == 'done'
+    db.close()

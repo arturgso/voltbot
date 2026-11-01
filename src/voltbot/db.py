@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS schedule (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    next_run_at REAL NOT NULL
+);
 CREATE TABLE IF NOT EXISTS installations (
     code TEXT PRIMARY KEY,
     label TEXT,

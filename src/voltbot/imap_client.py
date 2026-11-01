@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from datetime import date
+from imaplib import IMAP4
+import ssl
 
 from imap_tools import AND, MailBox, MailMessage
+from imap_tools.errors import MailboxLoginError
 
 from voltbot.config import get_settings
 from voltbot.domain import SUBJECT_FILTER
@@ -14,6 +17,39 @@ def _fetch_from_account(
     """Fetch messages from a single IMAP account. Limited to IMAP I/O."""
     with MailBox(host).login(username, password, "INBOX") as mailbox:
         return list(mailbox.fetch(criteria, mark_seen=False, reverse=True))
+
+
+class EmailAccountError(RuntimeError):
+    """Expected IMAP failure with a safe, actionable user message."""
+
+
+def _fetch_labeled_account(
+    label: str, host: str, username: str, password: str, criteria: AND
+) -> list[MailMessage]:
+    # Account labels identify the source without logging login details.
+    account = f'conta de e-mail “{label}”'
+    print(f"Consultando {account}...")
+    try:
+        messages = _fetch_from_account(host, username, password, criteria)
+    except MailboxLoginError:
+        raise EmailAccountError(
+            f"Login recusado na {account}. Confira o usuário e a senha em E-mails. "
+            "Se o provedor exigir senha de aplicativo, use essa senha. "
+            "A busca foi interrompida antes do envio de mensagens."
+        ) from None
+    except ssl.SSLError:
+        raise EmailAccountError(
+            f"Falha na conexão segura da {account}. Confira o servidor IMAP "
+            "e o certificado do provedor. A busca foi interrompida antes do envio de mensagens."
+        ) from None
+    except (OSError, IMAP4.error):
+        raise EmailAccountError(
+            f"Não foi possível conectar ou consultar a {account}. "
+            "Confira o servidor IMAP, a conexão de rede e a disponibilidade do provedor. "
+            "A busca foi interrompida antes do envio de mensagens."
+        ) from None
+    print(f"Consulta concluída na {account}: {len(messages)} e-mail(s) no período e assunto selecionados.")
+    return messages
 
 
 def _iter_account_credentials() -> list[tuple[str, str, str, str]]:
@@ -49,8 +85,8 @@ def find_day_emails(day: date | None = None) -> list[MailMessage]:
     target_day = day or date.today()
     criteria = AND(subject=SUBJECT_FILTER, date=target_day)
     messages: list[MailMessage] = []
-    for _label, host, username, password in _iter_account_credentials():
-        messages.extend(_fetch_from_account(host, username, password, criteria))
+    for label, host, username, password in _iter_account_credentials():
+        messages.extend(_fetch_labeled_account(label, host, username, password, criteria))
     return messages
 
 
@@ -62,6 +98,6 @@ def find_range_emails(start: date, end_exclusive: date) -> list[MailMessage]:
     """
     criteria = AND(subject=SUBJECT_FILTER, date_gte=start, date_lt=end_exclusive)
     messages: list[MailMessage] = []
-    for _label, host, username, password in _iter_account_credentials():
-        messages.extend(_fetch_from_account(host, username, password, criteria))
+    for label, host, username, password in _iter_account_credentials():
+        messages.extend(_fetch_labeled_account(label, host, username, password, criteria))
     return messages

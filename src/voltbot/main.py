@@ -20,7 +20,7 @@ from voltbot.parsers import parse_mail_message
 from voltbot.state import already_processed
 from voltbot.storage import save_pdf
 
-DEFAULT_POLL_INTERVAL_SECONDS = 3600
+DEFAULT_POLL_INTERVAL_SECONDS = 604800
 
 
 def collect_deliveries(messages: list[MailMessage]) -> list[PendingDelivery]:
@@ -166,7 +166,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         "--interval-seconds",
         type=int,
         default=None,
-        help="Intervalo entre ciclos em segundos (padrão: POLL_INTERVAL_SECONDS ou 3600). "
+        help="Intervalo entre ciclos em segundos (padrão fixo: 604800, uma semana). "
         "Use 0 para rodar uma única vez.",
     )
     parser.add_argument(
@@ -207,13 +207,8 @@ def resolve_target_day(cli_date: date | None) -> date:
 
 
 def resolve_interval_seconds(cli_interval: int | None) -> int:
-    """Intervalo entre ciclos: flag --interval-seconds ou POLL_INTERVAL_SECONDS do ambiente."""
-    if cli_interval is not None:
-        return cli_interval
-    try:
-        return get_settings().poll_interval_seconds
-    except Exception:
-        return DEFAULT_POLL_INTERVAL_SECONDS
+    """CLI interval: explicit override, otherwise one fixed week (no environment)."""
+    return cli_interval if cli_interval is not None else DEFAULT_POLL_INTERVAL_SECONDS
 
 
 def build_preview(
@@ -271,12 +266,17 @@ def run_cycle(
     target_day: date | None = None,
     *,
     month: tuple[int, int] | None = None,
+    date_range: tuple[date, date] | None = None,
     dry_run: bool = False,
     barcode_only: bool = False,
     barcode_all: bool = False,
 ) -> dict:
     catchup_stats: dict | None = None
-    if month is not None:
+    if date_range is not None:
+        start, end = date_range
+        print(f"Buscando faturas da semana a partir de {start:%d/%m/%Y} (fim exclusivo: {end:%d/%m/%Y}).")
+        deliveries = collect_deliveries(find_range_emails(start, end))
+    elif month is not None:
         label = f"{month[0]:04d}-{month[1]:02d}"
         print(f"[{datetime.now():%d/%m/%Y %H:%M:%S}] Buscando faturas do mês {label}...")
         if barcode_only:

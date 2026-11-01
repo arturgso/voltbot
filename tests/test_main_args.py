@@ -130,16 +130,16 @@ def test_month_bounds_spans_full_month():
     assert month_bounds(2026, 12) == (date(2026, 12, 1), date(2027, 1, 1))
 
 
-def test_resolve_interval_falls_back_to_settings(monkeypatch):
+def test_resolve_interval_ignores_legacy_settings(monkeypatch):
     monkeypatch.setattr(
         main_module, "get_settings", lambda: SimpleNamespace(poll_interval_seconds=123)
     )
-    assert resolve_interval_seconds(None) == 123
+    assert resolve_interval_seconds(None) == 604800
 
 
-def test_resolve_interval_defaults_when_settings_fail(monkeypatch):
+def test_resolve_interval_default_does_not_require_settings(monkeypatch):
     def _boom():
         raise ValueError("sem settings")
 
     monkeypatch.setattr(main_module, "get_settings", _boom)
-    assert resolve_interval_seconds(None) == 3600
+    assert resolve_interval_seconds(None) == 604800

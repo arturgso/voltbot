@@ -5,8 +5,9 @@ import io
 import sqlite3
 import threading
 import traceback
-from contextlib import redirect_stdout
-from datetime import date
+import time
+from contextlib import redirect_stdout, asynccontextmanager
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -18,6 +19,8 @@ from voltbot.config import get_settings
 from voltbot.db import Database, seed_from_settings
 from voltbot.evolution import EvolutionError
 from voltbot.main import parse_month, run_cycle
+from voltbot.imap_client import EmailAccountError
+from voltbot.scheduler import RUN_LOCK, WEEK_SECONDS, next_run_at, scheduler_loop
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -74,6 +77,11 @@ def _db(request_db_path: str | None = None) -> Database:
 
 
 def _execute_run(db_path: str, run_id: int, payload: dict) -> None:
+    with RUN_LOCK:
+        _run_task(db_path, run_id, payload)
+
+
+def _run_task(db_path: str, run_id: int, payload: dict) -> None:
     """Background job: runs a cycle, persisting prints + summary in SQLite."""
     db = Database(db_path)
     buffer = io.StringIO()
@@ -87,9 +95,21 @@ def _execute_run(db_path: str, run_id: int, payload: dict) -> None:
                 db.log(run_id, level, line)
 
     try:
-        db.log(run_id, "INFO", f"início: modo={payload.get('mode')} dry_run={payload.get('dry_run')} barcode_only={payload.get('barcode_only', False)} barcode_all={payload.get('barcode_all', False)}")
+        period = payload.get("start") or payload.get("month") or payload.get("date") or date.today().isoformat()
+        operation = "Simulação" if payload.get("dry_run") else "Execução com envio"
+        content = "somente códigos de barras" if payload.get("barcode_only") else "faturas e códigos de barras"
+        db.log(run_id, "INFO", f"{operation} iniciada. Período: {period}. Conteúdo: {content}.")
+        if payload.get("dry_run"):
+            db.log(run_id, "INFO", "Nenhuma mensagem será enviada. A consulta aos e-mails e o armazenamento de PDFs continuam habilitados.")
+        if payload.get("barcode_only"):
+            scope = "Inclui faturas ainda não enviadas." if payload.get("barcode_all") else "Apenas faturas já enviadas no período."
+            db.log(run_id, "INFO", scope)
+        if payload.get("scheduled"):
+            db.log(run_id, "INFO", "Execução automática semanal: consulta dos sete dias anteriores e do dia atual.")
         with redirect_stdout(buffer):
-            if payload.get("mode") == "month":
+            if payload.get("mode") == "week":
+                summary = run_cycle(date_range=(date.fromisoformat(payload["start"]), date.fromisoformat(payload["end"])))
+            elif payload.get("mode") == "month":
                 year, month = parse_month(payload["month"])
                 summary = run_cycle(
                     month=(year, month),
@@ -110,7 +130,12 @@ def _execute_run(db_path: str, run_id: int, payload: dict) -> None:
                     barcode_all=payload.get("barcode_all", False),
                 )
         flush_buffer()
+        db.log(run_id, "INFO", "Simulação concluída sem enviar mensagens." if payload.get("dry_run") else "Execução concluída.")
         db.finish_run(run_id, "done", summary)
+    except EmailAccountError as exc:
+        flush_buffer()
+        db.log(run_id, "ERROR", str(exc))
+        db.finish_run(run_id, "error", {"error": str(exc)})
     except EvolutionError as exc:
         flush_buffer()
         db.log(run_id, "ERROR", f"Falha na Evolution API: {exc}")
@@ -125,13 +150,26 @@ def _execute_run(db_path: str, run_id: int, payload: dict) -> None:
 
 
 def create_app(db_path: str | None = None) -> FastAPI:
-    app = FastAPI(title="VoltBot")
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        stop = threading.Event()
+        thread = threading.Thread(target=scheduler_loop, args=(app.state.db_path, stop, _run_task), daemon=True)
+        app.state.scheduler_thread = thread
+        thread.start()
+        try:
+            yield
+        finally:
+            stop.set()
+            thread.join(timeout=1)
+
+    app = FastAPI(title="VoltBot", lifespan=lifespan)
     app.state.db_path = db_path or get_settings().db_path
 
     # Seed at startup so the UI already shows migrated data.
     db = Database(app.state.db_path)
     try:
         seed_from_settings(db, get_settings())
+        next_run_at(db, time.time())
     finally:
         db.close()
 
@@ -149,12 +187,18 @@ def create_app(db_path: str | None = None) -> FastAPI:
             installations = database.list_installations()
             contacts = database.list_contacts()
             accounts = database.list_email_accounts()
+            scheduled_at = next_run_at(database, time.time())
         finally:
             database.close()
         return {
             "evolution_configured": bool(settings.evolution_api_key and settings.evolution_instance),
             "evolution_instance": settings.evolution_instance,
-            "poll_interval_seconds": settings.poll_interval_seconds,
+            "poll_interval_seconds": WEEK_SECONDS,
+            "schedule": {
+                "active": bool(getattr(app.state, "scheduler_thread", None) and app.state.scheduler_thread.is_alive()),
+                "next_run_at": datetime.fromtimestamp(scheduled_at, timezone.utc).isoformat(),
+                "server_time": datetime.now(timezone.utc).isoformat(),
+            },
             "email_accounts": len(accounts),
             "email_accounts_enabled": sum(1 for acc in accounts if acc["enabled"]),
             "installations": len(installations),

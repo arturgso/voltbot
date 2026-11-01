@@ -79,7 +79,6 @@ services:
       DB_PATH: /app/data/voltbot.db
       EVOLUTION_API_URL: http://evolution-api:8080
       EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-VoltBot}
-      POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-3600}
     volumes:
       - ./downloads:/app/downloads
       - ./state:/app/state
