@@ -67,7 +67,7 @@ services:
       - voltbot
 
   voltbot:
-    build: .
+    image: ghcr.io/arturgso/voltbot:latest
     container_name: voltbot_app
     profiles:
       - app
@@ -90,7 +90,7 @@ services:
       - voltbot
 
   voltbot-web:
-    build: .
+    image: ghcr.io/arturgso/voltbot:latest
     container_name: voltbot_web
     restart: unless-stopped
     entrypoint: ["voltbot-web"]
