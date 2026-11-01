@@ -4,11 +4,25 @@ import pytest
 from fastapi.testclient import TestClient
 
 import voltbot.web as web_module
+from voltbot.config import Settings
 from voltbot.web import create_app
 
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
+    settings = Settings(
+        _env_file=None,
+        imap_host="imap.example.invalid",
+        imap_user="teste@example.invalid",
+        imap_pass="senha-ficticia",
+        evolution_api_url="http://127.0.0.1:1",
+        evolution_api_key="",
+        evolution_instance="Teste",
+        db_path=str(tmp_path / "web.db"),
+        downloads_dir=str(tmp_path / "downloads"),
+        state_path=str(tmp_path / "state.json"),
+    )
+    monkeypatch.setattr(web_module, "get_settings", lambda: settings)
     monkeypatch.setattr(web_module, "seed_from_settings", lambda db, settings: {})
     app = create_app(str(tmp_path / "web.db"))
     with TestClient(app) as test_client:
