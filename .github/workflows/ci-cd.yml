@@ -25,6 +25,7 @@ jobs:
     timeout-minutes: 30
     env:
       DOCKER_CONFIG: ${{ runner.temp }}/docker-${{ github.run_id }}-${{ github.run_attempt }}
+      DOCKER_BUILD_RECORD_UPLOAD: 'false'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
