@@ -1,5 +1,40 @@
 # VoltBot ⚡
 
+## CI/CD local (GitHub Actions)
+
+O workflow `.github/workflows/ci-cd.yml` executa pytest, typecheck e build do
+frontend a cada push em `master`, ou manualmente em **Actions → CI/CD local**.
+Todos os passos usam exclusivamente o runner `voltbot-phoenixa-local`, com label
+`voltbot-local`, instalado em `~/.local/share/voltbot-runner`.
+Não executa código de pull requests externos neste computador.
+
+O runner é um serviço systemd do usuário:
+
+```bash
+systemctl --user status voltbot-actions-runner
+systemctl --user restart voltbot-actions-runner
+journalctl --user -u voltbot-actions-runner -n 50
+```
+
+O computador precisa estar ligado, conectado e com o serviço ativo. Sem runner
+online, os jobs aguardam; não migram para runners hospedados pelo GitHub.
+Para manter o serviço após logout/reinício sem sessão aberta, um administrador
+pode executar `sudo loginctl enable-linger artur`.
+
+O deploy é manual: execute o workflow na branch `master` marcando **deploy**.
+Após os testes, ele constrói a imagem local e atualiza somente `voltbot-web`,
+usando o Compose e o `.env` em `/home/artur/Repo/voltbot`; preserva volumes,
+downloads e estado. Requer acesso do usuário do runner ao Docker e os serviços
+Evolution/PostgreSQL/Redis já iniciados. O agendador normal da aplicação volta
+a funcionar com o servidor, podendo executar uma tarefa semanal pendente.
+Sem marcar **deploy**, nenhum serviço de produção é iniciado ou alterado.
+
+Pelas [regras atuais de cobrança](https://docs.github.com/en/billing/concepts/product-billing/github-actions),
+runners self-hosted são gratuitos e não descontam minutos incluídos no plano.
+O workflow não usa cache remoto, upload de artefatos ou registro de imagens
+no GitHub. CPU, disco, rede e energia são do computador local; mudanças futuras
+de preço do GitHub devem ser reavaliadas.
+
 Busca faturas da Enel por e-mail (IMAP) e envia via Evolution API (WhatsApp),
 falando como o VoltBot.
 
