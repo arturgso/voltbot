@@ -8,23 +8,25 @@ import App from './App';
 import './styles.css';
 
 const theme = createTheme({
-  primaryColor: 'forest',
-  black: '#202a24',
+  primaryColor: 'blue',
+  black: '#252824',
   colors: {
+    blue: ['#eef4ff', '#dbe7ff', '#b7cfff', '#8aaff4', '#638ee3', '#416dca', '#2854ad', '#1e438d', '#17346f', '#112653'],
     forest: ['#eef7f1', '#d9eddf', '#b4d9c2', '#8bc5a3', '#62ae83', '#409663', '#23734b', '#1b6240', '#165236', '#10442c'],
     gray: ['#f7f9f7', '#f1f5f2', '#e3e9e4', '#d4ded6', '#b0bdb3', '#8a9b8f', '#66736b', '#4e5e53', '#34463b', '#202a24'],
   },
   primaryShade: 6,
-  defaultRadius: 'md',
+  defaultRadius: 'sm',
+  radius: { sm: '6px', md: '8px', lg: '10px' },
   headings: { fontWeight: '650' },
   components: {
-    Button: { defaultProps: { fw: 600 } },
+    Button: { defaultProps: { fw: 650, autoContrast: true } },
     Card: { defaultProps: { padding: 'lg', withBorder: true } },
-    Badge: { defaultProps: { variant: 'light', tt: 'none', fw: 600 } },
+    Badge: { defaultProps: { variant: 'light', tt: 'none', fw: 650, autoContrast: true } },
     Modal: { defaultProps: { centered: true, padding: 'xl', radius: 'lg' } },
   },
   fontFamily:
-    "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   fontFamilyMonospace:
     "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
 });

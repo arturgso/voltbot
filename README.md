@@ -24,8 +24,10 @@ A interface permite: acompanhar status e logs, executar on-demand (dia, data
 ou mês inteiro, com dry-run), cadastrar contas de e-mail de origem e gerenciar
 instalações e contatos. Sem autenticação — uso local (bind em `WEB_HOST`).
 
-As abas no topo organizam execução e cadastros. Use **Adicionar** para abrir os
-formulários de cadastro; contatos também podem ser editados em um modal.
+As abas **Execuções**, **Instalações e contatos** e **E-mails** organizam a interface.
+A execução mais recente é selecionada ao carregar o histórico. Em instalações,
+selecione uma unidade para ver seus contatos e adicionar destinatários a ela.
+Use **Adicionar** para abrir os formulários; contatos também podem ser editados em um modal.
 Cada instalação pode ter uma **Senha para abrir o PDF**, informada ao adicionar
 ou editar a instalação. Quando cadastrada, ela acompanha os dados dessa instalação
 na mensagem da fatura e na prévia da simulação. O campo é opcional; deixe-o vazio
@@ -34,7 +36,8 @@ continua enviando apenas os dígitos.
 Na execução, **Simular envio** mostra uma prévia por destinatário sem enviar
 mensagens (a consulta IMAP e o download de PDFs ainda podem ocorrer). As opções
 de reenvio de códigos de barras ficam em **Opções avançadas**. Selecione um item
-do histórico para ver seu resultado e expandir os logs.
+do histórico para ver seu resultado e expandir os logs. As prévias ficam recolhidas
+por destinatário; abra uma delas para conferir a mensagem, os PDFs e os códigos de barras.
 
 Os logs identificam a conta de e-mail pelo nome cadastrado e mostram a quantidade
 de e-mails encontrados. Falhas de login ou conexão IMAP exibem orientações em

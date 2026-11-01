@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Badge, Box, Button, Card, Group, Loader, Modal, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
 import { api, type EmailAccount } from './api';
-import { ConfirmDialog, EmptyState, failure, LoadError, PageHeading, success } from './ui';
+import { ConfirmDialog, EmptyState, failure, LoadError, success } from './ui';
 
 export default function AccountsTab({ refreshStatus }: { refreshStatus: () => Promise<void> }) {
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
@@ -42,7 +42,6 @@ export default function AccountsTab({ refreshStatus }: { refreshStatus: () => Pr
   };
 
   return <Box>
-    <PageHeading title="Contas de e-mail" description="Gerencie as contas consultadas para buscar faturas." />
     <Card>
       <Group justify="space-between" className="section-heading"><div><h2>Contas de e-mail</h2><Text size="sm" c="dimmed" mt={5}>Ative apenas as contas que deseja consultar.</Text></div><Button onClick={() => setOpened(true)}>Adicionar conta</Button></Group>
       {error && <LoadError retry={refresh} />}

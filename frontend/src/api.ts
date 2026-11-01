@@ -23,6 +23,7 @@ export interface Status {
   evolution_configured: boolean;
   evolution_instance: string;
   poll_interval_seconds: number;
+  schedule: { active: boolean; next_run_at: string; server_time: string };
   email_accounts: number;
   email_accounts_enabled: number;
   installations: number;
@@ -147,6 +148,7 @@ export function formatDuration(startIso: string, endIso: string | null): string 
 }
 
 export function kindLabel(run: { kind: string; params: Record<string, unknown> }): string {
+  if (run.kind === 'week') return 'Semanal · automático';
   if (run.kind === 'month') return 'Mês inteiro';
   if (run.kind === 'date') return `Data ${String(run.params.date || '')}`;
   return 'Hoje';

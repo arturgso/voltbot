@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Accordion, Badge, Box, Button, Card, Group, Text } from '@mantine/core';
+import { Accordion, Badge, Box, Button, Group, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { formatDuration, type PreviewItem, type RunDetail } from './api';
 
@@ -47,17 +47,27 @@ export default function ConsolePanel({ run }: { run: RunDetail }) {
 export function PreviewPanel({ run }: { run: RunDetail | null }) {
   const preview = (run?.summary as { preview?: PreviewItem[] } | undefined)?.preview || [];
   if (!run || !preview.length) return null;
-  return <Box mt="lg">
-    <Text component="h3" size="sm" fw={650} mb="md">Prévia por destinatário</Text>
-    {preview.map((item, i) => <Card key={i} padding="md" mb="sm">
-      <Group justify="space-between" mb="md"><Box className="row-content"><Text size="sm" fw={600}>{item.name || 'Destinatário'}</Text><Text size="xs" c="dimmed">{item.phone}</Text></Box>{item.intro && <Badge>Com apresentação</Badge>}</Group>
-      {item.text && <div className="preview-text">{item.text}</div>}
-      {(item.barcode_messages || []).map((code, k) => <Box className="soft-panel" key={k} mt="md"><Text size="xs" c="dimmed" mb={8}>Código de barras · mensagem separada</Text><Text size="xs" ff="monospace" style={{ overflowWrap: 'anywhere' }}>{code}</Text><Button size="xs" variant="light" mt="xs" onClick={() => copyText(code)}>Copiar código</Button></Box>)}
-      {item.bills.map((bill, j) => <Box key={j} className="data-row" mt="sm">
-        <Text size="sm" fw={550}>{bill.installation_label || 'Instalação'} · {bill.installation}</Text>
-        <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>{bill.bill_date} · {bill.pdf_name}{bill.amount ? ` · R$ ${bill.amount}` : ''}</Text>
-        {!bill.barcode && <Text size="xs" c="orange" mt={4}>Código de barras não encontrado no e-mail</Text>}
-      </Box>)}
-    </Card>)}
+  return <Box mt="lg" className="preview-section">
+    <Group justify="space-between" mb="sm"><Text component="h3" size="sm" fw={650} m={0}>Prévia por destinatário</Text><Text size="xs" c="dimmed">{preview.length} destinatário{preview.length === 1 ? '' : 's'}</Text></Group>
+    {preview.map((item, i) => <details className="recipient-preview" key={`${item.phone}-${i}`}>
+      <summary className="recipient-summary">
+        <span className="recipient-identity"><span className="recipient-name">{item.name || 'Destinatário'}</span><span className="recipient-phone">{item.phone}</span></span>
+        <span className="recipient-meta">{item.bills.length} fatura{item.bills.length === 1 ? '' : 's'}<span className="disclosure-arrow" aria-hidden="true">⌄</span></span>
+      </summary>
+      <div className="recipient-content">
+        <Group justify="space-between" mb="sm"><Text size="xs" c="dimmed">Mensagem</Text>{item.intro && <Badge color="gray" size="sm">Com apresentação</Badge>}</Group>
+        {item.text && <div className="preview-text">{item.text}</div>}
+        {!!item.bills.length && <div className="preview-files">
+          <Text size="xs" fw={600} c="dimmed" mb={4}>PDFs incluídos</Text>
+          {item.bills.map((bill, j) => <Box key={j} className="preview-file">
+            <Group justify="space-between" gap="xs"><Text size="sm" fw={550}>{bill.installation_label || 'Instalação'}</Text>{bill.amount && <Text size="sm" fw={600}>R$ {bill.amount}</Text>}</Group>
+            <Text size="xs" c="dimmed" mt={3}>UC {bill.installation} · {bill.bill_date}</Text>
+            <Text size="xs" c="dimmed" className="pdf-name">{bill.pdf_name}</Text>
+            {!bill.barcode && <Text size="xs" c="orange" mt={4}>Código de barras não encontrado no e-mail</Text>}
+          </Box>)}
+        </div>}
+        {(item.barcode_messages || []).map((code, k) => <div className="barcode-preview" key={k}><Group justify="space-between" mb={6}><Text size="xs" c="dimmed">Código de barras {item.barcode_messages.length > 1 ? k + 1 : ''} · mensagem separada</Text><Button size="compact-xs" variant="subtle" onClick={() => copyText(code)}>Copiar</Button></Group><Text size="xs" ff="monospace" style={{ overflowWrap: 'anywhere' }}>{code}</Text></div>)}
+      </div>
+    </details>)}
   </Box>;
 }

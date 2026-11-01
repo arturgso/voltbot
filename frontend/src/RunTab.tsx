@@ -3,7 +3,7 @@ import { Accordion, Badge, Box, Button, Card, Checkbox, Grid, Group, Loader, Seg
 import { notifications } from '@mantine/notifications';
 import { api, formatDateTime, kindLabel, statusLabel, type RunDetail, type RunSummary, type Status } from './api';
 import ConsolePanel, { PreviewPanel } from './ConsolePanel';
-import { ConfirmDialog, EmptyState, LoadError, PageHeading } from './ui';
+import { ConfirmDialog, EmptyState, LoadError } from './ui';
 
 function currentYearMonth(): string {
   const now = new Date();
@@ -21,6 +21,28 @@ function monthOptions() {
 }
 export function runColor(status: string): string {
   return status === 'done' ? 'forest' : status === 'error' ? 'red' : 'blue';
+}
+
+function ScheduleCountdown({ status }: { status: Status | null }) {
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const schedule = status?.schedule;
+  useEffect(() => {
+    if (!schedule) { setRemaining(null); return; }
+    const initial = new Date(schedule.next_run_at).getTime() - new Date(schedule.server_time).getTime();
+    const started = performance.now();
+    const tick = () => setRemaining(Math.max(0, Math.ceil((initial - (performance.now() - started)) / 1000)));
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [schedule]);
+  const days = Math.floor((remaining ?? 0) / 86400);
+  const clock = [Math.floor((remaining ?? 0) % 86400 / 3600), Math.floor((remaining ?? 0) % 3600 / 60), (remaining ?? 0) % 60].map(n => String(n).padStart(2, '0')).join(':');
+  return <div className="schedule-countdown">
+    <Group justify="space-between" gap="xs"><Text size="xs" fw={600}>Agendamento semanal</Text><Badge color={schedule?.active ? 'blue' : 'gray'} size="sm">{schedule ? schedule.active ? 'Ativo' : 'Inativo' : 'Consultando'}</Badge></Group>
+    <div className="countdown-value" aria-label="Tempo até a próxima execução">{remaining == null ? '—' : !schedule?.active ? 'Indisponível' : remaining === 0 ? 'Aguardando execução' : `${days}d ${clock}`}</div>
+    <Text size="xs" c="dimmed">{schedule ? `Próxima: ${formatDateTime(schedule.next_run_at)}` : 'Aguardando informações do servidor.'}</Text>
+    <Text size="xs" c="dimmed" mt={6}>Busca a semana anterior e o dia atual. Executar manualmente não altera o agendamento.</Text>
+  </div>;
 }
 
 export default function RunTab({ status, refreshStatus }: { status: Status | null; refreshStatus: () => Promise<void> }) {
@@ -41,11 +63,16 @@ export default function RunTab({ status, refreshStatus }: { status: Status | nul
   const [confirmClear, setConfirmClear] = useState(false);
 
   const refreshRuns = useCallback(async () => {
-    try { setRuns(await api.runs()); setRunsError(false); }
+    try {
+      const next = await api.runs();
+      setRuns(next);
+      setSelectedId(current => current ?? next[0]?.id ?? null);
+      setRunsError(false);
+    }
     catch { setRunsError(true); }
     finally { setRunsLoading(false); }
   }, []);
-  useEffect(() => { refreshRuns(); }, [refreshRuns]);
+  useEffect(() => { refreshRuns(); }, [refreshRuns, status?.last_run?.id]);
 
   useEffect(() => {
     setDetail(null);
@@ -101,14 +128,10 @@ export default function RunTab({ status, refreshStatus }: { status: Status | nul
 
   return (
     <Box>
-      <PageHeading title="Executar" description="Consulte faturas e acompanhe os envios." />
-      <div className="metrics" aria-label="Resumo dos cadastros">
-        {[['Contas ativas', status?.email_accounts_enabled], ['Instalações', status?.installations], ['Contatos', status?.contacts]].map(([label, value]) => <div className="metric" key={label}><Text c="dimmed" className="metric-label" size="sm">{label}</Text><div className="metric-value">{value ?? '—'}</div></div>)}
-      </div>
-      <Grid gutter="lg" align="stretch">
-        <Grid.Col span={{ base: 12, md: 5 }}>
-          <Card h="100%">
-            <div className="section-heading"><h2>Nova execução</h2><Text size="sm" c="dimmed" mt={5}>Escolha o período que deseja consultar.</Text></div>
+      <Grid gutter="xl" align="flex-start">
+        <Grid.Col span={{ base: 12, md: 4 }}>
+          <Card className="execution-panel">
+            <div className="section-heading"><h2>Nova execução</h2><Text size="sm" c="dimmed" mt={5}>Buscar faturas e enviar aos contatos.</Text></div>
             <form onSubmit={submit}>
               <Stack gap="lg">
                 <Box><Text size="sm" fw={550} mb={8}>Período</Text><SegmentedControl className="segmented-period" fullWidth value={mode} onChange={setMode} aria-label="Período da execução" data={[{ value: 'today', label: 'Hoje' }, { value: 'date', label: 'Uma data' }, { value: 'month', label: 'Mês inteiro' }]} /></Box>
@@ -121,25 +144,25 @@ export default function RunTab({ status, refreshStatus }: { status: Status | nul
                     {barcodeOnly && <Checkbox label="Incluir faturas ainda não enviadas" checked={barcodeAll} onChange={e => setBarcodeAll(e.target.checked)} />}
                   </Stack></Accordion.Panel></Accordion.Item>
                 </Accordion>
-                <Button type="submit" fullWidth size="md" loading={busy}>{dryRun ? 'Simular envio' : 'Executar automação'} <span aria-hidden="true" style={{ marginLeft: 12 }}>→</span></Button>
-                <Text size="xs" c="dimmed">Intervalo configurado: {status ? `${status.poll_interval_seconds} segundos` : '—'}. As execuções automáticas dependem do worker em funcionamento.</Text>
+                <Button type="submit" fullWidth size="md" loading={busy}>{dryRun ? 'Simular' : 'Executar'}</Button>
+                <ScheduleCountdown status={status} />
               </Stack>
             </form>
           </Card>
         </Grid.Col>
-        <Grid.Col span={{ base: 12, md: 7 }}>
-          <Card h="100%">
-            <div className="section-heading"><h2>Acompanhamento</h2><Text size="sm" c="dimmed" mt={5}>O resultado aparece aqui, a cada execução.</Text></div>
+        <Grid.Col span={{ base: 12, md: 8 }}>
+          <Card className="result-panel">
+            <div className="section-heading"><h2>Acompanhamento</h2><Text size="sm" c="dimmed" mt={5}>Consulte o resultado e confira as mensagens.</Text></div>
             {detailError && <LoadError retry={() => setRetryDetail(v => v + 1)} />}
             {selectedId == null ? <EmptyState title="Nenhuma execução selecionada" description="Inicie uma execução ou selecione um item do histórico para acompanhar os resultados." /> : !detail ? !detailError && <Group justify="center" py="xl"><Loader size="sm" /><Text size="sm" c="dimmed">Carregando execução…</Text></Group> : <>
               <Group justify="space-between"><Box><Text fw={650}>Execução #{detail.id}</Text><Text size="xs" c="dimmed">{kindLabel(detail)} · {formatDateTime(detail.created_at)}</Text></Box><Group gap="xs"><Badge color={runColor(detail.status)}>{statusLabel(detail.status)}</Badge>{detail.dry_run && <Badge color="gray">Simulação</Badge>}</Group></Group>
               <ConsolePanel run={detail} />
-              <PreviewPanel run={detail} />
+              <PreviewPanel key={detail.id} run={detail} />
             </>}
           </Card>
         </Grid.Col>
       </Grid>
-      <Card mt="lg">
+      <Card mt="xl" className="history-panel">
         <Group justify="space-between" className="section-heading"><div><h2>Execuções recentes</h2><Text size="sm" c="dimmed" mt={5}>Selecione uma execução para ver os detalhes.</Text></div><Button variant="subtle" color="gray" size="xs" disabled={!runs.length || runsLoading || runsError || runs.some(r => r.status === 'running')} onClick={() => setConfirmClear(true)}>Limpar recentes</Button></Group>
         {runsError && <LoadError retry={refreshRuns} />}
         {runsLoading ? <Group justify="center" py="lg"><Loader size="sm" /><Text size="sm" c="dimmed">Carregando histórico…</Text></Group> : !runsError && runs.length === 0 ? <EmptyState title="Nenhuma execução registrada" description="As execuções e simulações aparecerão nesta lista." /> : runs.map(r => <button type="button" className="run-row" key={r.id} aria-pressed={r.id === selectedId} onClick={() => setSelectedId(r.id)}><span className="row-content"><Text component="span" size="sm" fw={600}>#{r.id} · {kindLabel(r)}</Text><Text component="span" display="block" size="xs" c="dimmed" mt={4}>{formatDateTime(r.created_at)}</Text></span><Group gap="xs" component="span">{r.dry_run && <Badge color="gray">Simulação</Badge>}<Badge color={runColor(r.status)}>{statusLabel(r.status)}</Badge><span aria-hidden="true">↗</span></Group></button>)}
