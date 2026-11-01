@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: voltbot-local
@@ -22,6 +23,8 @@ jobs:
     # Sem fallback para máquinas hospedadas pelo GitHub.
     runs-on: [self-hosted, Linux, X64, voltbot-local]
     timeout-minutes: 30
+    env:
+      DOCKER_CONFIG: ${{ runner.temp }}/docker-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -43,6 +46,26 @@ jobs:
           npm ci --no-audit --no-fund
           npm run typecheck
           npm run build
+      - name: Autenticar no GHCR
+        if: github.ref == 'refs/heads/master'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Construir e publicar imagem
+        if: github.ref == 'refs/heads/master'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/arturgso/voltbot:latest
+            ghcr.io/arturgso/voltbot:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/arturgso/voltbot
+            org.opencontainers.image.revision=${{ github.sha }}
+          provenance: false
       - name: Atualizar servidor web local
         if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/master'
         env:

@@ -4,6 +4,10 @@
 
 O workflow `.github/workflows/ci-cd.yml` executa pytest, typecheck e build do
 frontend a cada push em `master`, ou manualmente em **Actions → CI/CD local**.
+Após a validação em `master`, `docker/build-push-action` publica a imagem
+`ghcr.io/arturgso/voltbot` com as tags `latest` e o SHA completo do commit.
+O contexto local inclui o frontend compilado no mesmo job. A autenticação usa
+o `GITHUB_TOKEN` temporário com permissão `packages: write`, sem PAT cadastrado.
 Todos os passos usam exclusivamente o runner `voltbot-phoenixa-local`, com label
 `voltbot-local`, instalado em `~/.local/share/voltbot-runner`.
 Não executa código de pull requests externos neste computador.
@@ -31,9 +35,11 @@ Sem marcar **deploy**, nenhum serviço de produção é iniciado ou alterado.
 
 Pelas [regras atuais de cobrança](https://docs.github.com/en/billing/concepts/product-billing/github-actions),
 runners self-hosted são gratuitos e não descontam minutos incluídos no plano.
-O workflow não usa cache remoto, upload de artefatos ou registro de imagens
-no GitHub. CPU, disco, rede e energia são do computador local; mudanças futuras
-de preço do GitHub devem ser reavaliadas.
+O workflow não usa cache remoto nem upload de artefatos do Actions. O armazenamento
+e a transferência de imagens no GHCR são atualmente gratuitos, conforme a
+[documentação do GitHub Packages](https://docs.github.com/en/billing/concepts/product-billing/github-packages).
+CPU, disco, rede e energia são do computador local; mudanças futuras de preço
+do GitHub devem ser reavaliadas.
 
 Busca faturas da Enel por e-mail (IMAP) e envia via Evolution API (WhatsApp),
 falando como o VoltBot.
